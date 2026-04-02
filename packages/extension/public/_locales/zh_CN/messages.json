@@ -1,0 +1,18 @@
+{
+  "name": {
+    "message": "豆包AI助手",
+    "description": "扩展名称"
+  },
+  "description": {
+    "message": "你的AI聊天智能对话问答助手，写作文案翻译编程全能工具",
+    "description": "扩展描述"
+  },
+  "action_title": {
+    "message": "打开豆包AI助手",
+    "description": "操作按钮标题"
+  },
+  "side_panel_title": {
+    "message": "豆包AI助手",
+    "description": "侧边栏标题"
+  }
+}

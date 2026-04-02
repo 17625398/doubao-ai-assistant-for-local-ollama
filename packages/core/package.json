@@ -1,0 +1,29 @@
+{
+  "name": "@doubao/core",
+  "version": "1.0.0",
+  "description": "核心共享模块",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@types/pdf-parse": "^1.1.5",
+    "docx": "^9.6.1",
+    "mammoth": "^1.12.0",
+    "pdf-parse": "^2.4.5",
+    "pptx-parser": "^1.1.7-beta.9",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.263",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}

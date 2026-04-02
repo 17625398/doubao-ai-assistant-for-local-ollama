@@ -1,0 +1,15 @@
+// Core 模块入口
+export * from './types';
+export * from './types/document';
+export * from './utils/logger';
+export * from './utils/event-bus';
+export * from './utils/ollama-client';
+export * from './utils/openai-compatible-client';
+export * from './utils/ai-config-manager';
+export * from './utils/document-parser';
+export * from './utils/ai-document-processor';
+export * from './utils/cache-manager';
+export * from './utils/plugin-system';
+export * from './utils/text-picker';
+export * from './utils/bookmark-manager';
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsWUFBWTtBQUVaLGNBQWMsU0FBUyxDQUFDO0FBQ3hCLGNBQWMsa0JBQWtCLENBQUM7QUFDakMsY0FBYyxnQkFBZ0IsQ0FBQztBQUMvQixjQUFjLG1CQUFtQixDQUFDO0FBQ2xDLGNBQWMsdUJBQXVCLENBQUM7QUFDdEMsY0FBYyxrQ0FBa0MsQ0FBQztBQUNqRCxjQUFjLDJCQUEyQixDQUFDO0FBQzFDLGNBQWMseUJBQXlCLENBQUM7QUFDeEMsY0FBYywrQkFBK0IsQ0FBQztBQUM5QyxjQUFjLHVCQUF1QixDQUFDO0FBQ3RDLGNBQWMsdUJBQXVCLENBQUM7QUFDdEMsY0FBYyxxQkFBcUIsQ0FBQztBQUNwQyxjQUFjLDBCQUEwQixDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQ29yZSDmqKHlnZflhaXlj6NcblxuZXhwb3J0ICogZnJvbSAnLi90eXBlcyc7XG5leHBvcnQgKiBmcm9tICcuL3R5cGVzL2RvY3VtZW50JztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvbG9nZ2VyJztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvZXZlbnQtYnVzJztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvb2xsYW1hLWNsaWVudCc7XG5leHBvcnQgKiBmcm9tICcuL3V0aWxzL29wZW5haS1jb21wYXRpYmxlLWNsaWVudCc7XG5leHBvcnQgKiBmcm9tICcuL3V0aWxzL2FpLWNvbmZpZy1tYW5hZ2VyJztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvZG9jdW1lbnQtcGFyc2VyJztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvYWktZG9jdW1lbnQtcHJvY2Vzc29yJztcbmV4cG9ydCAqIGZyb20gJy4vdXRpbHMvY2FjaGUtbWFuYWdlcic7XG5leHBvcnQgKiBmcm9tICcuL3V0aWxzL3BsdWdpbi1zeXN0ZW0nO1xuZXhwb3J0ICogZnJvbSAnLi91dGlscy90ZXh0LXBpY2tlcic7XG5leHBvcnQgKiBmcm9tICcuL3V0aWxzL2Jvb2ttYXJrLW1hbmFnZXInO1xuIl19

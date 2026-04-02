@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豆包AI助手 - 设置</title>
+  <link rel="stylesheet" href="./styles.css">
+<script defer src="js/options.js"></script></head>
+<body>
+  <div class="options-container">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="../icons/icon48.png" alt="豆包">
+        <h1>豆包AI助手</h1>
+      </div>
+      <nav class="nav-menu">
+        <a href="#general" class="nav-item active" data-section="general">
+          <span class="icon">⚙️</span>
+          常规设置
+        </a>
+        <a href="#ai" class="nav-item" data-section="ai">
+          <span class="icon">🤖</span>
+          AI 设置
+        </a>
+        <a href="#shortcuts" class="nav-item" data-section="shortcuts">
+          <span class="icon">⌨️</span>
+          快捷键
+        </a>
+        <a href="#about" class="nav-item" data-section="about">
+          <span class="icon">ℹ️</span>
+          关于
+        </a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <!-- 常规设置 -->
+      <section id="general" class="section active">
+        <h2>常规设置</h2>
+
+        <div class="setting-group">
+          <h3>外观</h3>
+          <div class="setting-item">
+            <label for="theme">主题</label>
+            <select id="theme">
+              <option value="light">浅色</option>
+              <option value="dark">深色</option>
+              <option value="auto">跟随系统</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="language">语言</label>
+            <select id="language">
+              <option value="zh-CN">简体中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>行为</h3>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="auto-open">
+              <span>启动浏览器时自动打开侧边栏</span>
+            </label>
+          </div>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="context-menu">
+              <span>启用右键菜单</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI 设置 -->
+      <section id="ai" class="section">
+        <h2>AI 设置</h2>
+
+        <div class="setting-group">
+          <h3>模型配置</h3>
+          <div class="setting-item">
+            <label for="ai-provider">服务提供商</label>
+            <select id="ai-provider">
+              <option value="ollama">Ollama（本地）</option>
+              <option value="openai">OpenAI</option>
+              <option value="custom">自定义（OpenAI兼容）</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="temperature">创造性 (Temperature)</label>
+            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+            <span class="value-display" id="temperature-value">0.7</span>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>本地模型 / OpenAI兼容</h3>
+
+          <div id="ai-provider-ollama" class="ai-provider-section">
+            <div class="setting-item">
+              <label for="ollama-base-url">Ollama 地址</label>
+              <input type="text" id="ollama-base-url" placeholder="http://192.168.0.32:11434">
+            </div>
+            <div class="setting-item">
+              <label for="ollama-model">默认模型</label>
+              <input type="text" id="ollama-model" placeholder="例如：llama3.1:8b">
+            </div>
+            <div class="setting-item">
+              <label for="ollama-model-select">可用模型</label>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <button type="button" id="ollama-refresh-models" class="btn secondary">检查并刷新</button>
+                <select id="ollama-model-select">
+                  <option value="">点击“检查并刷新”获取模型</option>
+                </select>
+                <span id="ollama-check-status" style="color: var(--text-secondary); font-size: 12px;"></span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label for="ollama-timeout">超时 (ms)</label>
+              <input type="number" id="ollama-timeout" min="1000" step="1000" value="30000">
+            </div>
+            <div class="setting-item checkbox">
+              <label>
+                <input type="checkbox" id="ollama-stream" checked>
+                <span>启用流式响应</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="ai-provider-openai" class="ai-provider-section">
+            <div class="setting-item">
+              <label for="openai-base-url">Base URL</label>
+              <input type="text" id="openai-base-url" placeholder="https://api.openai.com/v1">
+            </div>
+            <div class="setting-item">
+              <label for="openai-api-key">API Key</label>
+              <input type="password" id="openai-api-key" placeholder="官方 OpenAI 需要 Key">
+            </div>
+            <div class="setting-item">
+              <label for="openai-model">默认模型</label>
+              <input type="text" id="openai-model" placeholder="例如：gpt-4o-mini">
+            </div>
+            <div class="setting-item">
+              <label for="openai-timeout">超时 (ms)</label>
+              <input type="number" id="openai-timeout" min="1000" step="1000" value="30000">
+            </div>
+            <div class="setting-item checkbox">
+              <label>
+                <input type="checkbox" id="openai-stream" checked>
+                <span>启用流式响应</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="ai-provider-custom" class="ai-provider-section">
+            <div class="setting-item">
+              <label for="custom-base-url">Base URL</label>
+              <input type="text" id="custom-base-url" placeholder="http://localhost:1234/v1">
+            </div>
+            <div class="setting-item">
+              <label for="custom-api-key">API Key</label>
+              <input type="password" id="custom-api-key" placeholder="可选">
+            </div>
+            <div class="setting-item">
+              <label for="custom-model">默认模型</label>
+              <input type="text" id="custom-model" placeholder="例如：llama-3.1-8b-instruct">
+            </div>
+            <div class="setting-item multiline">
+              <label for="custom-headers">Headers (JSON)</label>
+              <textarea id="custom-headers" rows="6" placeholder='{"Authorization":"Bearer xxx"}'></textarea>
+            </div>
+            <div class="setting-item">
+              <label for="custom-timeout">超时 (ms)</label>
+              <input type="number" id="custom-timeout" min="1000" step="1000" value="30000">
+            </div>
+            <div class="setting-item checkbox">
+              <label>
+                <input type="checkbox" id="custom-stream" checked>
+                <span>启用流式响应</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>对话设置</h3>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="stream-response" checked>
+              <span>流式响应</span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <label for="max-context">最大上下文轮数</label>
+            <input type="number" id="max-context" min="1" max="50" value="10">
+          </div>
+        </div>
+      </section>
+
+      <!-- 快捷键 -->
+      <section id="shortcuts" class="section">
+        <h2>快捷键</h2>
+
+        <div class="setting-group">
+          <h3>全局快捷键</h3>
+          <div class="shortcut-list">
+            <div class="shortcut-item">
+              <span class="action">打开侧边栏</span>
+              <kbd class="key">Alt</kbd>
+              <span class="plus">+</span>
+              <kbd class="key">D</kbd>
+            </div>
+            <div class="shortcut-item">
+              <span class="action">新建对话</span>
+              <kbd class="key">Alt</kbd>
+              <span class="plus">+</span>
+              <kbd class="key">N</kbd>
+            </div>
+            <div class="shortcut-item">
+              <span class="action">截图提问</span>
+              <kbd class="key">Alt</kbd>
+              <span class="plus">+</span>
+              <kbd class="key">S</kbd>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 关于 -->
+      <section id="about" class="section">
+        <h2>关于</h2>
+
+        <div class="about-content">
+          <img src="../icons/icon128.png" alt="豆包" class="about-logo">
+          <h3>豆包AI助手</h3>
+          <p class="version">版本 <span id="version">1.0.0</span></p>
+          <p class="description">
+            豆包是你的 AI 聊天智能对话问答助手，写作文案翻译编程全能工具。
+            豆包为你答疑解惑，提供灵感，辅助创作。
+          </p>
+
+          <div class="links">
+            <a href="https://www.doubao.com" target="_blank">官方网站</a>
+            <a href="https://www.doubao.com/privacy" target="_blank">隐私政策</a>
+            <a href="https://www.doubao.com/terms" target="_blank">服务条款</a>
+          </div>
+        </div>
+      </section>
+
+      <div class="actions-bar">
+        <button id="reset-btn" class="btn secondary">恢复默认</button>
+        <button id="save-btn" class="btn primary">保存设置</button>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

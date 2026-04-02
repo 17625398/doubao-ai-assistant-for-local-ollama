@@ -1,0 +1,14 @@
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist-standalone/
+**/dist-standalone/
+.turbo/
+**/.turbo/
+*.tsbuildinfo
+.env
+.env.*
+coverage/
+**/coverage/
+.DS_Store

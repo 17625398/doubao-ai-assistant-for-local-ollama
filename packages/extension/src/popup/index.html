@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豆包AI助手</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <img src="../icons/icon32.png" alt="豆包" class="logo">
+      <h1>豆包AI助手</h1>
+    </header>
+
+    <main class="popup-content">
+      <div class="quick-actions">
+        <button id="open-sidepanel" class="action-card primary">
+          <span class="icon">💬</span>
+          <span class="text">打开侧边栏</span>
+        </button>
+
+        <button id="new-chat" class="action-card">
+          <span class="icon">✨</span>
+          <span class="text">新建对话</span>
+        </button>
+
+        <button id="read-page" class="action-card">
+          <span class="icon">📄</span>
+          <span class="text">读网页</span>
+        </button>
+
+        <button id="capture-page" class="action-card">
+          <span class="icon">📷</span>
+          <span class="text">截图提问</span>
+        </button>
+      </div>
+
+      <div class="recent-sessions">
+        <h3>最近对话</h3>
+        <ul id="sessions-list">
+          <li class="empty">暂无最近对话</li>
+        </ul>
+      </div>
+    </main>
+
+    <footer class="popup-footer">
+      <button id="open-settings" class="text-btn">设置</button>
+      <span class="divider">|</span>
+      <button id="open-full" class="text-btn">打开完整页面</button>
+    </footer>
+  </div>
+</body>
+</html>

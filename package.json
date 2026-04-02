@@ -1,0 +1,36 @@
+{
+  "name": "doubao-ai-assistant",
+  "version": "1.0.0",
+  "description": "豆包AI助手 - 浏览器扩展与桌面应用",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:core": "cd packages/core && npm run build",
+    "build:extension": "cd packages/extension && npm run build",
+    "build:web": "cd packages/web && npm run build",
+    "package:web": "npm run build:web && cd packages/web && npm run package:standalone",
+    "package:web:zip": "npm run build:web && cd packages/web && npm run package:zip",
+    "package:web:win": "npm run package:web:zip",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.4",
+    "typescript": "^5.9.3",
+    "undici-types": "^7.24.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bluebird": "^3.7.2",
+    "mammoth": "^1.12.0",
+    "node-fetch": "^3.3.2",
+    "xmlbuilder": "^15.1.1"
+  }
+}
