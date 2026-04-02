@@ -7,6 +7,7 @@ import {
   OllamaGenerateResponse,
   OllamaChatRequest,
   OllamaChatResponse,
+  OllamaChatMessage,
   OllamaGenerateOptions,
 } from '../types';
 import { logger } from './logger';
@@ -288,10 +289,32 @@ export class OllamaClient {
   }
 
   /**
+   * 清理消息中的空images字段，避免模型不支持图像输入时报错
+   */
+  private cleanMessages(messages: OllamaChatMessage[]): OllamaChatMessage[] {
+    return messages.map(msg => {
+      const cleaned: OllamaChatMessage = {
+        role: msg.role,
+        content: msg.content,
+      };
+      // 只有当images存在且不为空时才保留
+      if (msg.images && msg.images.length > 0) {
+        cleaned.images = msg.images;
+      }
+      return cleaned;
+    });
+  }
+
+  /**
    * 聊天（非流式）
    */
   async chat(request: OllamaChatRequest): Promise<OllamaChatResponse> {
     try {
+      const cleanedRequest = {
+        ...request,
+        messages: this.cleanMessages(request.messages),
+      };
+      
       const response = await fetch(`${this.config.baseUrl}/api/chat`, {
         method: 'POST',
         headers: {
@@ -299,7 +322,7 @@ export class OllamaClient {
           ...this.config.headers,
         },
         body: JSON.stringify({
-          ...request,
+          ...cleanedRequest,
           stream: false,
         }),
         signal: AbortSignal.timeout(this.config.timeout),
@@ -338,6 +361,11 @@ export class OllamaClient {
         else signal.addEventListener('abort', onAbort);
       }
 
+      const cleanedRequest = {
+        ...request,
+        messages: this.cleanMessages(request.messages),
+      };
+
       const response = await fetch(`${this.config.baseUrl}/api/chat`, {
         method: 'POST',
         headers: {
@@ -345,7 +373,7 @@ export class OllamaClient {
           ...this.config.headers,
         },
         body: JSON.stringify({
-          ...request,
+          ...cleanedRequest,
           stream: true,
         }),
         signal: controller.signal,

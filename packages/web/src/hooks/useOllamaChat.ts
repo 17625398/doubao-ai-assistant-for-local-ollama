@@ -93,14 +93,25 @@ export function useOllamaChat(options: UseOllamaChatOptions = {}): UseOllamaChat
       abortControllerRef.current = controller;
 
       const history = messages
-        .map((msg) => ({ role: msg.role, content: msg.content } as OllamaChatMessage))
+        .map((msg) => {
+          // 只复制必要的字段，避免传递images字段
+          const cleanMsg: OllamaChatMessage = {
+            role: msg.role,
+            content: msg.content,
+          };
+          return cleanMsg;
+        })
         .filter((msg) => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'system');
 
-      history.push({
+      // 构建用户消息，只有包含图片时才添加images字段
+      const userMessage: OllamaChatMessage = {
         role: 'user',
         content: content.trim(),
-        images: extra?.images && extra.images.length > 0 ? extra.images : undefined,
-      } as OllamaChatMessage);
+      };
+      if (extra?.images && extra.images.length > 0) {
+        userMessage.images = extra.images;
+      }
+      history.push(userMessage);
 
       if (config.provider === 'ollama' && config.ollama) {
         if (config.ollama.streamEnabled) {

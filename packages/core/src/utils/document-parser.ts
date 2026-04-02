@@ -15,11 +15,21 @@ import {
   ImageContent,
 } from '../types/document';
 import { logger } from './logger';
-import * as pdf from 'pdf-parse';
 import * as XLSX from 'xlsx';
 import { createWorker } from 'tesseract.js';
 import { cacheManager } from './cache-manager';
 import * as mammoth from 'mammoth';
+
+async function loadPdfParse(): Promise<(input: unknown) => Promise<unknown>> {
+  const mod = (await import('pdf-parse')) as unknown as {
+    default?: unknown;
+    pdf?: unknown;
+  };
+  const candidate = (mod as { default?: unknown }).default ?? mod;
+  if (typeof candidate === 'function') return candidate as (input: unknown) => Promise<unknown>;
+  if (typeof mod.pdf === 'function') return mod.pdf as (input: unknown) => Promise<unknown>;
+  throw new TypeError('pdf-parse module is not a function');
+}
 
 /**
  * 基础文档解析器类
@@ -557,16 +567,30 @@ export class PDFDocumentParser extends BaseDocumentParser {
       }
 
       // 使用 pdf-parse 库解析 PDF
-      // @ts-ignore - 忽略类型错误，因为 pdf-parse 类型定义可能不完整
-      const pdfData = await pdf(buffer);
+      const pdfParse = await loadPdfParse();
+      const input =
+        buffer instanceof ArrayBuffer
+          ? typeof Buffer !== 'undefined'
+            ? Buffer.from(buffer)
+            : new Uint8Array(buffer)
+          : buffer;
+      const pdfData = (await pdfParse(input)) as {
+        numpages?: number;
+        info?: Record<string, unknown> | null;
+        text?: string;
+      };
       
       const metadata = await this.parseMetadata(file);
-      metadata.pageCount = pdfData.numpages;
-      metadata.author = pdfData.info?.Author || 'Unknown';
-      metadata.title = pdfData.info?.Title || 'Unknown';
-      metadata.subject = pdfData.info?.Subject || 'Unknown';
-      metadata.keywords = pdfData.info?.Keywords ? pdfData.info.Keywords.split(';') : [];
-      metadata.wordCount = pdfData.text ? pdfData.text.split(/\s+/).length : 0;
+      metadata.pageCount = typeof pdfData.numpages === 'number' ? pdfData.numpages : 0;
+      const info = (pdfData.info || {}) as Record<string, unknown>;
+      metadata.author = typeof info.Author === 'string' && info.Author.trim() ? info.Author : 'Unknown';
+      metadata.title = typeof info.Title === 'string' && info.Title.trim() ? info.Title : 'Unknown';
+      metadata.subject = typeof info.Subject === 'string' && info.Subject.trim() ? info.Subject : 'Unknown';
+      metadata.keywords =
+        typeof info.Keywords === 'string' && info.Keywords.trim()
+          ? info.Keywords.split(';').map((s) => s.trim()).filter(Boolean)
+          : [];
+      metadata.wordCount = pdfData.text ? pdfData.text.split(/\s+/).filter(Boolean).length : 0;
       metadata.charCount = pdfData.text ? pdfData.text.length : 0;
 
       const content: DocumentContent[] = [];

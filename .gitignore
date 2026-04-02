@@ -18,3 +18,4 @@ build/
 coverage/
 **/coverage/
 .DS_Store
+debug.log
