@@ -1,0 +1,925 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 豆包App原生配色系统 */
+  /* 主色 - 活力橙 */
+  --primary-hue: 24;
+  --primary-saturation: 100%;
+  --primary-lightness: 59%;
+
+  /* 品牌色 */
+  --brand-orange: #ff6b35;
+  --brand-orange-light: #ff8f66;
+  --brand-orange-dark: #e55a28;
+
+  /* 背景色系 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f8fa;
+  --bg-tertiary: #f0f2f5;
+  --bg-hover: #e8eaed;
+
+  /* 文字色系 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #5c5c5c;
+  --text-tertiary: #8e959f;
+  --text-disabled: #b5b5b5;
+
+  /* 边框色系 */
+  --border-light: #e8e8e8;
+  --border-medium: #d4d4d4;
+
+  /* 消息气泡 */
+  --user-bubble-from: #ff6b35;
+  --user-bubble-to: #ff8f66;
+  --ai-bubble-bg: #ffffff;
+  --ai-bubble-border: #e8e8e8;
+
+  /* 侧边栏 */
+  --sidebar-bg: #fafbfc;
+  --sidebar-item-active: #fff5f0;
+  --sidebar-item-hover: #f5f5f5;
+
+  /* 圆角系统 - 遵循苹果设计规范 */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* 阴影系统 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+
+  /* 间距系统 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+}
+
+/* 深色模式 - 豆包App原生风格 */
+.dark {
+  /* 背景色系 */
+  --bg-primary: #1c1c1e;
+  --bg-secondary: #2c2c2e;
+  --bg-tertiary: #3a3a3c;
+  --bg-hover: #48484a;
+
+  /* 文字色系 */
+  --text-primary: #ffffff;
+  --text-secondary: #ebebf5;
+  --text-tertiary: #98989d;
+  --text-disabled: #636366;
+
+  /* 边框色系 */
+  --border-light: #38383a;
+  --border-medium: #48484a;
+
+  /* 消息气泡 */
+  --user-bubble-from: #ff8f66;
+  --user-bubble-to: #ff6b35;
+  --ai-bubble-bg: #2c2c2e;
+  --ai-bubble-border: #38383a;
+
+  /* 侧边栏 */
+  --sidebar-bg: #1c1c1e;
+  --sidebar-item-active: #3a3a3c;
+  --sidebar-item-hover: #2c2c2e;
+
+  /* 阴影系统 - 深色模式下更柔和 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.45), 0 10px 10px rgba(0, 0, 0, 0.35);
+
+  /* 额外暗色模式变量 - 组件使用 */
+  --dark-bg-primary: #1c1c1e;
+  --dark-bg-secondary: #2c2c2e;
+  --dark-bg-tertiary: #3a3a3c;
+  --dark-text-primary: #ffffff;
+  --dark-text-secondary: #ebebf5;
+  --dark-text-disabled: #636366;
+  --dark-border: #38383a;
+  --dark-border-hover: #48484a;
+}
+
+/* 基础重置 */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  height: 100%;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* 豆包App风格滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d1d6;
+  border-radius: 2.5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b5b5ba;
+}
+
+/* 深色模式滚动条 */
+.dark ::-webkit-scrollbar-thumb {
+  background: #48484a;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #636366;
+}
+
+/* 响应式字体大小 - 豆包App风格 */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1025px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* 响应式容器 */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+}
+
+/* 响应式间距 */
+@media (max-width: 640px) {
+  .gap-4 {
+    gap: 1rem;
+  }
+
+  .gap-6 {
+    gap: 1.25rem;
+  }
+
+  .py-6 {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* 响应式布局 */
+@media (max-width: 640px) {
+  .flex-col-mobile {
+    flex-direction: column;
+  }
+
+  .w-full-mobile {
+    width: 100%;
+  }
+
+  .text-sm-mobile {
+    font-size: 0.875rem;
+  }
+}
+
+/* ========================================
+   豆包App原生动画系统
+   ======================================== */
+
+/* 基础渐入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 轻微上浮渐入 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 从左侧滑入 */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 从右侧滑入 */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 轻微缩放渐入 */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 弹性脉冲 - 用于加载状态 */
+@keyframes bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* 呼吸动画 - 用于在线状态等 */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* 光晕动画 */
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(255, 107, 53, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 107, 53, 0.5);
+  }
+}
+
+/* 消息进入动画 - 轻微弹性效果 */
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 动画类 */
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-bounce {
+  animation: bounce 0.6s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-message-in {
+  animation: messageIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* 工具类 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 增强动画 */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(22, 104, 220, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(22, 104, 220, 0.5);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 高级动画类 */
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* 毛玻璃效果 */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(30, 38, 52, 0.8);
+}
+
+/* 渐变边框 */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--brand-orange),
+    var(--brand-orange-dark),
+    var(--brand-orange)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* 增强阴影 */
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium);
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-strong);
+}
+
+/* 悬停上浮效果 */
+.hover-lift {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+/* 按钮按压效果 */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* 打字机光标 */
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 1s infinite;
+}
+
+/* ========================================
+   豆包App消息气泡样式
+   ======================================== */
+
+/* 用户消息气泡 - 橙色调 */
+.bubble-user {
+  background: linear-gradient(135deg, var(--user-bubble-from), var(--user-bubble-to));
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);
+  border-radius: var(--radius-lg);
+}
+
+.dark .bubble-user {
+  box-shadow: 0 4px 12px rgba(255, 143, 102, 0.3);
+}
+
+/* AI消息气泡 */
+.bubble-ai {
+  background: var(--ai-bubble-bg);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+}
+
+.dark .bubble-ai {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-light);
+}
+
+/* 技能卡片增强 - 豆包App风格 */
+.skill-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.skill-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--brand-orange);
+}
+
+/* 侧边栏增强 - 豆包App风格 */
+.sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-light);
+}
+
+/* 输入框增强 - 豆包App风格 */
+.input-enhanced {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+
+.input-enhanced:focus {
+  border-color: var(--brand-orange);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
+  outline: none;
+}
+
+/* 加载动画增强 */
+.loading-dots span {
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+.loading-dots span:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 选择样式 */
+::selection {
+  background: rgba(22, 104, 220, 0.2);
+  color: inherit;
+}
+
+/* 焦点样式 */
+:focus-visible {
+  outline: 2px solid rgb(var(--primary-rgb));
+  outline-offset: 2px;
+}
+
+/* 浮动动画变体 */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+
+@keyframes float-medium {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-1deg);
+  }
+}
+
+@keyframes float-fast {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 3s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 2s ease-in-out infinite;
+}
+
+/* 消息进入动画 */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 呼吸光晕 */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* 粒子闪烁 */
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* 弹性缩放 */
+@keyframes spring-scale {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-spring {
+  animation: spring-scale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode) {
+    color-scheme: dark;
+  }
+}
+
+/* 右侧滑入动画 - 用于设置面板 */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 侧边栏宽度变量 */
+:root {
+  --sidebar-width: 288px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 288px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+}
+
+/* ========================================
+   全局布局优化 - 响应式和间距
+   ======================================== */
+
+/* 主内容区域最大宽度优化 */
+.chat-content-wrapper {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1280px) {
+  .chat-content-wrapper {
+    max-width: 1000px;
+  }
+}
+
+/* 响应式间距系统 */
+@media (min-width: 640px) {
+  .responsive-padding {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* 面板过渡动画增强 */
+.panel-transition {
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* 侧边栏响应式优化 */
+.sidebar-responsive {
+  transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1),
+              transform 0.3s cubic-bezier(0.19, 1, 0.22, 1),
+              opacity 0.2s ease;
+}
+
+/* 聊天区域滚动优化 */
+.chat-scroll-area {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 输入框容器优化 */
+.input-container-fixed {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 大屏幕布局优化 */
+@media (min-width: 1536px) {
+  .layout-ultrawide {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* 中等屏幕优化 */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .layout-medium {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .touch-optimized {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .touch-spacing {
+    gap: 0.75rem;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

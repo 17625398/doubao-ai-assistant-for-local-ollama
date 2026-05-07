@@ -1,7 +1,7 @@
 {
-  "name": "@doubao/extension",
-  "version": "1.0.0",
-  "description": "豆包AI浏览器扩展",
+  "name": "@ai-intelligent-analysis-platform/extension",
+  "version": "2.0.0",
+  "description": "AI智能分析平台浏览器扩展 - 重大功能更新版",
   "scripts": {
     "dev": "webpack --mode=development --watch",
     "build": "webpack --mode=production",
@@ -10,14 +10,20 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@doubao/core": "file:../core"
+    "@ai-intelligent-analysis-platform/core": "file:../core"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.263",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "copy-webpack-plugin": "^12.0.0",
     "css-loader": "^6.10.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-prettier": "^5.5.5",
     "html-webpack-plugin": "^5.6.0",
     "mini-css-extract-plugin": "^2.8.0",
+    "prettier": "^3.8.1",
     "style-loader": "^3.3.4",
     "ts-loader": "^9.5.0",
     "typescript": "^5.4.0",

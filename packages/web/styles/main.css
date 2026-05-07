@@ -1,0 +1,362 @@
+
+@import "tailwindcss";
+
+/* Base Variables & Reset */
+:root {
+  /* Apple-style spring easing for premium feel */
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-circ: cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+/* Global Layout Reset for Full Height */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scroll, let React app handle scrolling */
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Selection Color — 现代渐变风格 */
+::selection {
+  background: linear-gradient(135deg, #1668dc20, #1668dc30);
+  color: #1668dc;
+}
+
+::-moz-selection {
+  background: linear-gradient(135deg, #1668dc20, #1668dc30);
+  color: #1668dc;
+}
+
+/* Custom Scrollbar — 现代化设计 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(22, 104, 220, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(22, 104, 220, 0.4), rgba(22, 104, 220, 0.2));
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(22, 104, 220, 0.6), rgba(22, 104, 220, 0.4));
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Hide Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Fade Mask for horizontal scroll lists */
+.fade-mask-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent);
+  mask-image: linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent);
+}
+
+/* Tooltip Styles */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: max-content;
+  max-width: 240px;
+  background-color: var(--theme-bg-tertiary);
+  color: var(--theme-text-primary);
+  text-align: center;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  position: absolute;
+  z-index: 50;
+  bottom: 135%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  opacity: 0;
+  transition:
+    opacity 0.2s var(--ease-out-expo),
+    transform 0.2s var(--ease-out-expo);
+  border: 1px solid var(--theme-border-secondary);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: normal;
+  pointer-events: none;
+  line-height: 1.4;
+  transform-origin: bottom center;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* 
+   EXPORT STYLES 
+   Target specific elements to hide during PNG export
+*/
+/* Note: UI elements (buttons, inputs) are removed via JS in prepareElementForExport. */
+
+/* Hide scrollbars in export */
+.is-exporting-png * {
+    scrollbar-width: none !important;
+}
+.is-exporting-png *::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Global Theme Transition */
+body,
+#root,
+.theme-transition-colors {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Thinking Process Accordion Animation */
+.thought-process-accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s var(--ease-spring);
+}
+
+.thought-process-accordion.expanded {
+  grid-template-rows: 1fr;
+}
+
+.thought-process-inner {
+  overflow: hidden;
+}
+
+/* Grounded search entry point */
+.search-entry-surface {
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   USER EXPERIENCE ENHANCEMENTS
+   Added for improved UX animations and feedback
+   ============================================ */
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s var(--ease-spring);
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Button press feedback */
+.btn-press:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Card hover lift effect */
+.card-lift {
+  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--theme-bg-secondary) 25%,
+    var(--theme-bg-tertiary) 50%,
+    var(--theme-bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Toast notification animations */
+.toast-enter {
+  animation: toastSlideIn 0.3s var(--ease-out-expo) forwards;
+}
+
+.toast-exit {
+  animation: toastSlideOut 0.2s ease forwards;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus-visible {
+  outline: none;
+  ring: 2px;
+  ring-offset: 2px;
+  ring-color: var(--theme-primary);
+}
+
+/* Stagger animation for lists */
+.stagger-children > * {
+  opacity: 0;
+  animation: staggerFadeIn 0.3s var(--ease-out-expo) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ripple effect for buttons */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.ripple:active::after {
+  width: 200%;
+  height: 200%;
+}
+
+/* Micro-interaction for checkboxes and toggles */
+.toggle-switch {
+  transition: background-color 0.2s ease;
+}
+
+.toggle-switch::before {
+  transition: transform 0.2s var(--ease-spring);
+}
+
+/* Improved scrollbar for content areas */
+.content-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.content-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.content-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.content-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive typography scale */
+@media (max-width: 640px) {
+  .responsive-heading {
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

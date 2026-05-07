@@ -101,17 +101,48 @@
 - 定义全局类型接口
 - 提供共享工具函数
 - 实现跨模块通信机制
+- 提供核心服务和功能
 
 #### 模块结构
 
 ```
 core/
 ├── src/
-│   ├── types/
+│   ├── types/                # 类型定义
+│   │   ├── document.ts       # 文档相关类型
+│   │   ├── plugin.ts         # 插件相关类型
 │   │   └── index.ts          # 全局类型定义
-│   ├── utils/
+│   ├── document-parsers/     # 文档解析器
+│   │   ├── base-document-parser.ts
+│   │   ├── pdf-document-parser.ts
+│   │   ├── text-document-parser.ts
+│   │   ├── word-document-parser.ts
+│   │   ├── excel-document-parser.ts
+│   │   ├── powerpoint-document-parser.ts
+│   │   ├── image-document-parser.ts
+│   │   ├── markdown-document-parser.ts
+│   │   ├── document-parser-registry.ts
+│   │   ├── document-parser-util.ts
+│   │   └── index.ts
+│   ├── services/             # 核心服务
+│   │   ├── error-handler-service.ts    # 错误处理服务
+│   │   ├── logger-service.ts           # 日志服务
+│   │   ├── dependency-injection-service.ts # 依赖注入服务
+│   │   ├── config-service.ts          # 配置管理服务
+│   │   ├── plugin-manager-service.ts   # 插件管理服务
+│   │   ├── rbac-service.ts            # RBAC 服务
+│   │   └── jwt-service.ts             # JWT 服务
+│   ├── utils/                # 工具函数
 │   │   ├── logger.ts         # 日志系统
-│   │   └── event-bus.ts      # 事件总线
+│   │   ├── event-bus.ts      # 事件总线
+│   │   ├── cache-manager.ts  # 缓存管理
+│   │   ├── plugin-system.ts  # 插件系统
+│   │   ├── mem-palace/       # 内存管理系统
+│   │   │   ├── types.ts      # 内存系统类型定义
+│   │   │   ├── mem-palace-service.ts # 内存系统核心服务
+│   │   │   └── index.ts      # 模块导出
+│   │   └── common/           # 通用工具
+│   ├── plugins/              # 插件
 │   └── index.ts              # 模块入口
 ```
 
@@ -383,6 +414,35 @@ Content Script          Background          Side Panel
 | 扩展全局状态 | chrome.storage | 持久化、跨上下文 |
 | Web 应用状态 | Zustand | 轻量、TypeScript 友好 |
 | 组件本地状态 | useState/useReducer | 简单场景 |
+| 配置管理 | ConfigService | 统一配置管理、多存储支持 |
+
+### 依赖管理
+
+| 场景 | 方案 | 理由 |
+|------|------|------|
+| 模块依赖 | DependencyInjectionService | 解耦、可测试性 |
+| 服务依赖 | 依赖注入装饰器 | 代码简洁、可读性高 |
+
+### 内存系统
+
+| 技术 | 版本 | 选择理由 |
+|------|------|----------|
+| ChromaDB | 1.9.3 | 本地向量存储、语义搜索 |
+| uuid | 9.0.1 | 生成唯一标识符 |
+
+### 错误处理
+
+| 场景 | 方案 | 理由 |
+|------|------|------|
+| 应用错误 | AppError | 类型安全、可跟踪 |
+| 错误处理 | ErrorHandlerService | 统一处理、可扩展 |
+
+### 日志系统
+
+| 场景 | 方案 | 理由 |
+|------|------|------|
+| 日志记录 | LoggerService | 多级别、多输出 |
+| 日志配置 | 可配置日志级别 | 灵活、可调整 |
 
 ### 开发工具
 
@@ -548,32 +608,93 @@ async function compressStore(key: string, data: object): Promise<void> {
 ```typescript
 // 插件接口
 interface Plugin {
+  id: string;
   name: string;
   version: string;
-  activate: () => void;
-  deactivate: () => void;
+  description?: string;
+  author?: string;
+  icon?: string;
+  enabled: boolean;
+  status?: PluginStatus;
+  
+  initialize(): void | Promise<void>;
+  destroy(): void | Promise<void>;
 }
 
-// 插件管理器
-class PluginManager {
+// 插件管理器服务
+class PluginManagerService {
   private plugins: Map<string, Plugin> = new Map();
+  private pluginManifests: Map<string, PluginManifest> = new Map();
 
-  register(plugin: Plugin): void {
+  registerPlugin(plugin: Plugin): void {
     this.plugins.set(plugin.name, plugin);
-    plugin.activate();
   }
 
-  unregister(name: string): void {
+  async activatePlugin(name: string): Promise<void> {
     const plugin = this.plugins.get(name);
     if (plugin) {
-      plugin.deactivate();
-      this.plugins.delete(name);
+      if (plugin.activate) {
+        await plugin.activate();
+      }
+      plugin.status = PluginStatus.ACTIVE;
+    }
+  }
+
+  async deactivatePlugin(name: string): Promise<void> {
+    const plugin = this.plugins.get(name);
+    if (plugin) {
+      if (plugin.deactivate) {
+        await plugin.deactivate();
+      }
+      plugin.status = PluginStatus.INACTIVE;
     }
   }
 }
 ```
 
-### 2. 主题系统
+### 2. 依赖注入系统
+
+```typescript
+// 依赖注入容器
+class DependencyInjectionContainer {
+  private dependencies: Map<string, any> = new Map();
+  private singletons: Map<string, any> = new Map();
+
+  register<T>(key: string, dependency: Dependency<T>, isSingleton: boolean = false): void {
+    this.dependencies.set(key, dependency);
+    if (isSingleton) {
+      this.singletons.set(key, this.resolve<T>(key));
+    }
+  }
+
+  resolve<T>(key: string): T {
+    if (this.singletons.has(key)) {
+      return this.singletons.get(key);
+    }
+
+    const dependency = this.dependencies.get(key);
+    if (typeof dependency === 'function') {
+      return dependency();
+    }
+
+    return dependency;
+  }
+}
+
+// 依赖注入装饰器
+function Inject(key: string) {
+  return function (target: any, propertyKey: string) {
+    Object.defineProperty(target, propertyKey, {
+      get: function () {
+        const container = DependencyInjectionContainer.getInstance();
+        return container.resolve(key);
+      },
+    });
+  };
+}
+```
+
+### 3. 主题系统
 
 ```typescript
 // 主题配置
@@ -704,3 +825,76 @@ class PerformanceMonitor {
 - 完成扩展模块设计
 - 完成 Web 模块设计
 - 定义数据流和通信机制
+
+### v1.1.0 (2024-04-15)
+
+- 集成 MemPalace 内存系统
+- 实现对话内容的自动存储
+- 实现语义搜索功能
+- 添加内存管理界面
+
+## MemPalace 内存系统
+
+### 架构设计
+
+MemPalace 是一个本地优先的内存管理系统，用于存储和检索AI对话历史。它基于分层架构设计，使用ChromaDB作为向量存储引擎，提供语义搜索能力。
+
+#### 核心组件
+
+1. **MemPalaceService**: 核心服务，管理内存的存储、检索和管理
+2. **ChromaDB**: 本地向量存储，用于语义搜索
+3. **分层存储结构**: Wings → Halls → Rooms → Memories
+
+#### 数据流
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ 对话输入/输出    │────>│  MemPalaceService │────>│  ChromaDB 存储   │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                              │
+                              ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ 内存管理界面    │<────│  语义搜索      │<────│  向量索引      │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### 功能特性
+
+1. **自动存储**: 对话内容自动存储到内存系统
+2. **语义搜索**: 基于向量嵌入的语义搜索
+3. **分层管理**: Wings、Halls、Rooms 三级结构
+4. **本地存储**: 无需外部API，保护隐私
+5. **性能优化**: 批量操作和缓存机制
+
+### 使用方式
+
+```typescript
+// 初始化内存服务
+const memPalaceService = getMemPalaceService();
+
+// 存储对话内容
+await memPalaceService.addMemory('conversations', 'general', 'default', {
+  content: 'User: Hello\nAssistant: Hi! How can I help you?',
+  metadata: {
+    timestamp: Date.now(),
+    model: 'llama3',
+    role: 'conversation'
+  }
+});
+
+// 搜索相关记忆
+const results = await memPalaceService.searchMemories('How to use AI');
+```
+
+### 性能优化
+
+1. **批量操作**: 支持批量添加内存，减少数据库操作
+2. **缓存机制**: 缓存常用数据，提高访问速度
+3. **索引优化**: 优化向量索引，提高搜索性能
+4. **异步操作**: 使用异步操作，避免阻塞主线程
+
+### 集成点
+
+1. **对话流程**: 在发送和接收消息时自动存储
+2. **内存管理界面**: 提供可视化管理工具
+3. **API接口**: 提供完整的内存管理API

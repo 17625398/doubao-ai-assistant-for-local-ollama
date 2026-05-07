@@ -524,7 +524,7 @@ class OptionsPage {
       try {
         await chrome.contextMenus.create({
           id: 'doubao-ai',
-          title: '使用豆包AI解释',
+          title: '使用AI智能分析平台AI解释',
           contexts: ['selection'],
         });
       } catch {
@@ -603,7 +603,7 @@ function mergeAIConfigs(base: AIServiceConfig, override?: AIServiceConfig): AISe
   if (base.ollama || override.ollama) {
     merged.ollama = {
       baseUrl: base.ollama?.baseUrl || 'http://192.168.0.32:11434',
-      defaultModel: base.ollama?.defaultModel || 'fredrezones55/qwen3.5-opus:27b',
+      defaultModel: base.ollama?.defaultModel || 'gemma4:e4b',
       timeout: base.ollama?.timeout ?? 30000,
       streamEnabled: base.ollama?.streamEnabled ?? true,
       ...override.ollama,

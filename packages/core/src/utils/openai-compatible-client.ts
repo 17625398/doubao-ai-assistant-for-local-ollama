@@ -59,7 +59,7 @@ export class OpenAICompatibleClient {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.getBaseUrl()}/models`, {
+      const response = await window.fetch(`${this.getBaseUrl()}/models`, {
         method: 'GET',
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(this.config.timeout),
@@ -72,7 +72,7 @@ export class OpenAICompatibleClient {
   }
 
   async listModels(): Promise<OpenAICompatibleModel[]> {
-    const response = await fetch(`${this.getBaseUrl()}/models`, {
+    const response = await window.fetch(`${this.getBaseUrl()}/models`, {
       method: 'GET',
       headers: this.buildHeaders(),
       signal: AbortSignal.timeout(this.config.timeout),
@@ -92,7 +92,7 @@ export class OpenAICompatibleClient {
     messages: OpenAICompatibleChatMessage[];
     temperature?: number;
   }): Promise<{ content: string }> {
-    const response = await fetch(`${this.getBaseUrl()}/chat/completions`, {
+    const response = await window.fetch(`${this.getBaseUrl()}/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(),
       body: JSON.stringify({
@@ -132,7 +132,7 @@ export class OpenAICompatibleClient {
         else signal.addEventListener('abort', onAbort);
       }
 
-      const response = await fetch(`${this.getBaseUrl()}/chat/completions`, {
+      const response = await window.fetch(`${this.getBaseUrl()}/chat/completions`, {
         method: 'POST',
         headers: this.buildHeaders(),
         body: JSON.stringify({

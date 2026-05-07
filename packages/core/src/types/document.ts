@@ -9,8 +9,23 @@ export enum DocumentType {
   EXCEL = 'excel',
   POWERPOINT = 'powerpoint',
   TEXT = 'text',
+  MARKDOWN = 'markdown',
   IMAGE = 'image',
+  CSV = 'csv',
+  RTF = 'rtf',
+  EPUB = 'epub',
   UNKNOWN = 'unknown',
+}
+
+export type PdfOcrMode = 'textFirst' | 'ocrFirst' | 'disabled'
+
+export interface PdfProcessingPolicy {
+  /** OCR 执行模式：textFirst（先文本提取）/ocrFirst（优先 OCR）/disabled（禁用 OCR） */
+  mode: PdfOcrMode
+  /** 单次 OCR 超时时间（毫秒） */
+  timeoutMs: number
+  /** OCR 最大重试次数（针对同一 OCR 引擎） */
+  maxRetries: number
 }
 
 /**
@@ -88,6 +103,10 @@ export interface TextContent {
 export interface TableContent {
   type: ContentType.TABLE;
   rows: string[][];
+  /** 表头 */
+  headers?: string[];
+  /** 原始 CSV 文本 */
+  rawCsv?: string;
   /** 表头行索引 */
   headerRowIndex?: number;
   /** 表格标题 */
@@ -212,6 +231,8 @@ export interface ParseOptions {
   startPage?: number;
   /** 结束页码（从 0 开始，-1 表示到最后一页） */
   endPage?: number;
+  /** PDF 页面渲染 DPI（适用于 PDF → 图片导出，默认 150） */
+  dpi?: number;
   /** 是否启用 OCR（针对扫描文档） */
   enableOCR?: boolean;
   /** OCR 语言 */
@@ -226,6 +247,8 @@ export interface ParseOptions {
   enableCache?: boolean;
   /** 缓存过期时间（毫秒） */
   cacheExpiry?: number;
+  /** PDF OCR 策略 */
+  pdfOcrPolicy?: Partial<PdfProcessingPolicy>;
 }
 
 /**

@@ -1,6 +1,6 @@
 // AI 配置管理器 - 管理 Ollama 和其他 AI 服务的配置
 
-import { AIServiceConfig, AIProvider, OllamaConfig, OllamaModel, OpenAIConfig, CustomServiceConfig, ModelParams, ProxyConfig, UIConfig, PrivacyConfig } from '../types';
+import { AIServiceConfig, AIProvider, OllamaConfig, OllamaModel, OpenAIConfig, CustomServiceConfig, ModelParams, ProxyConfig, UIConfig, PrivacyConfig, ResponseStylePreset } from '../types';
 import { OllamaClient, ollamaClient as globalOllamaClient } from './ollama-client';
 import { logger } from './logger';
 import { eventBus } from './event-bus';
@@ -57,7 +57,7 @@ export class AIConfigManager {
       },
       ollama: {
         baseUrl: ollamaBaseUrl,
-        defaultModel: 'fredrezones55/qwen3.5-opus:27b',
+        defaultModel: 'gemma4:e4b',
         timeout: 30000,
         streamEnabled: true,
         headers: {},
@@ -93,11 +93,20 @@ export class AIConfigManager {
           topP: 0.9,
         },
       },
+      linkmind: {
+        baseUrl: '/api/linkmind',
+        apiKey: '',
+        transportMode: 'proxy',
+        gatewayPath: '/api/linkmind',
+        timeout: 60000,
+        defaultModel: 'qwen-plus',
+      },
       ui: {
         theme: 'light',
         language: 'zh-CN',
         autoOpen: false,
         contextMenu: true,
+        responseStyle: 'normal',
       },
       privacy: {
         saveChatHistory: true,
@@ -228,7 +237,7 @@ export class AIConfigManager {
   async updateOllamaConfig(config: Partial<OllamaConfig>): Promise<void> {
     const newConfig: OllamaConfig = {
       baseUrl: this.config.ollama?.baseUrl || 'http://192.168.0.32:11434',
-      defaultModel: this.config.ollama?.defaultModel || 'fredrezones55/qwen3.5-opus:27b',
+      defaultModel: this.config.ollama?.defaultModel || 'gemma4:e4b',
       timeout: this.config.ollama?.timeout || 30000,
       streamEnabled: this.config.ollama?.streamEnabled ?? true,
       ...config,
@@ -289,6 +298,8 @@ export class AIConfigManager {
         return this.config.openai?.defaultModel || 'gpt-3.5-turbo';
       case 'custom':
         return this.config.custom?.defaultModel || '';
+      case 'linkmind':
+        return this.config.linkmind?.defaultModel || 'qwen-plus';
       default:
         return 'llama2';
     }
@@ -312,6 +323,11 @@ export class AIConfigManager {
           custom: { ...this.config.custom, defaultModel: model } as any,
         });
         break;
+      case 'linkmind':
+        await this.updateConfig({
+          linkmind: { ...this.config.linkmind, defaultModel: model } as any,
+        });
+        break;
     }
   }
 
@@ -332,7 +348,7 @@ export class AIConfigManager {
   /**
    * 更新UI配置
    */
-  async updateUIConfig(config: { theme?: string; language?: string; autoOpen?: boolean; contextMenu?: boolean }): Promise<void> {
+  async updateUIConfig(config: { theme?: string; language?: string; autoOpen?: boolean; contextMenu?: boolean; responseStyle?: ResponseStylePreset }): Promise<void> {
     const current = this.getUIConfig();
     const next: UIConfig = { ...current, ...config };
     await this.updateConfig({ ui: next });
@@ -341,8 +357,15 @@ export class AIConfigManager {
   /**
    * 获取UI配置
    */
-  getUIConfig(): { theme: string; language: string; autoOpen: boolean; contextMenu: boolean } {
-    return this.config.ui || { theme: 'light', language: 'zh-CN', autoOpen: false, contextMenu: true };
+  getUIConfig(): { theme: string; language: string; autoOpen: boolean; contextMenu: boolean; responseStyle: ResponseStylePreset } {
+    return {
+      theme: 'light',
+      language: 'zh-CN',
+      autoOpen: false,
+      contextMenu: true,
+      responseStyle: 'normal',
+      ...this.config.ui,
+    };
   }
 
   /**
@@ -381,6 +404,12 @@ export class AIConfigManager {
           custom: { ...this.config.custom, modelParams: { ...this.config.custom?.modelParams, ...params } } as any,
         });
         break;
+      case 'linkmind':
+        // LinkMind 由服务端路由控制，目前仅保存基础参数，不直接写 modelParams
+        await this.updateConfig({
+          linkmind: { ...this.config.linkmind } as any,
+        });
+        break;
     }
   }
 
@@ -395,6 +424,8 @@ export class AIConfigManager {
         return this.config.openai?.modelParams || { temperature: 0.7, maxTokens: 2048, topP: 0.9 };
       case 'custom':
         return this.config.custom?.modelParams || { temperature: 0.7, maxTokens: 2048, topP: 0.9 };
+      case 'linkmind':
+        return { temperature: 0.7, maxTokens: 2048, topP: 0.9 };
       default:
         return { temperature: 0.7, maxTokens: 2048, topP: 0.9 };
     }
@@ -471,6 +502,15 @@ export class AIConfigManager {
       }
       if (!this.config.custom.defaultModel) {
         errors.push('Custom default model is required');
+      }
+    }
+
+    if (this.config.provider === 'linkmind' && this.config.linkmind) {
+      if (!this.config.linkmind.baseUrl) {
+        errors.push('LinkMind base URL is required');
+      }
+      if (!this.config.linkmind.defaultModel) {
+        errors.push('LinkMind default model is required');
       }
     }
 

@@ -1,0 +1,25 @@
+# OpenKB Configuration
+# Use Ollama with LiteLLM format
+model: ollama/qwen3.6
+
+# Knowledge base settings
+knowledge_base:
+  name: Doubao Knowledge Base
+  description: Auto-generated knowledge base from uploaded documents
+
+# PageIndex settings for long documents
+pageindex:
+  enabled: true
+  threshold: 20  # Pages threshold for using PageIndex
+
+# Wiki compilation settings
+wiki:
+  auto_compile: true
+  generate_summaries: true
+  generate_concepts: true
+  cross_reference: true
+
+# Watch mode settings
+watch:
+  enabled: true
+  interval: 30  # seconds

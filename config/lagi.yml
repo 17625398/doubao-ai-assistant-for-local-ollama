@@ -1,0 +1,141 @@
+system_title: LinkMind
+models:
+  - name: ollama
+    type: Ollama
+    enable: true
+    model: qwen3.6,huihui_ai/Python3.6-abliterated:27b,llama3.1,gemma2,mistral,phi3,dolphin-llama3,qwen2.5vl
+    driver: ai.llm.adapter.impl.OllamaAdapter
+    api_key: dummy
+    api_address: http://192.168.0.32:11434
+stores:
+  vector:
+    - name: chroma
+      driver: ai.vector.impl.SqliteVectorStore
+      default_category: default
+      similarity_top_k: 10
+      similarity_cutoff: 0.5
+      parent_depth: 1
+      child_depth: 1
+      url: http://localhost:8000
+  term:
+    - name: elasticsearch
+      driver: ai.bigdata.impl.SqliteSearchAdapter
+      host: localhost
+      port: 9200
+      enable: false
+  rag:
+    vector: chroma
+    term: elastic
+    graph: landing
+    enable: false
+    priority: 10
+    track: true
+    html: true
+    default: Please give prompt more precisely
+  medusa:
+    enable: false
+include_stores: store.yml
+functions:
+  embedding:
+    - backend: landing
+      type: Landing
+      api_key: sk-bd820fb82933465db00f44f23457847d
+  chat:
+    route: pass(ollama)
+    enable_auth: false
+    filter: sensitive,priority,stopping,continue
+    backends:
+      - backend: ollama
+        enable: true
+        stream: true
+        priority: 15
+  doc2ocr:
+    - backend: ollama
+      model: huihui_ai/Python3.6-abliterated:27b
+      enable: true
+      priority: 15
+      api_address: http://192.168.0.32:11434
+  doc2ext:
+    - backend: ollama
+      model: qwen3.6
+      enable: true
+      priority: 15
+      api_address: http://192.168.0.32:11434
+  doc2struct:
+    - backend: ollama
+      model: qwen3.6
+      enable: true
+      priority: 15
+      api_address: http://192.168.0.32:11434
+agents:
+  enable: true
+  items:
+    - name: stock
+      wrong_case: 抱歉
+      token: your-token
+      app_id: your-app-id
+      driver: ai.agent.chat.coze.CozeAgent
+    - name: weather
+      token: your-token
+      driver: ai.agent.customer.WeatherAgent
+include_agents: agent.yml
+mcps:
+  servers:
+    - name: amap_mcp
+      url: https://mcp.amap.com/sse?key=your-key
+include_mcps: mcp.yml
+skills:
+  enable: false
+  roots:
+    - classpath:skills
+  workspace: skills
+  rule: cli
+  workers:
+    - name: qq-robot
+      agent: qq
+      route: pass(qq)
+      worker: ai.worker.social.RobotWorker
+    - name: wechat-robot
+      agent: wechat
+      route: pass(wechat)
+      worker: ai.worker.social.RobotWorker
+    - name: ding-robot
+      agent: ding
+      route: pass(ding)
+      worker: ai.worker.social.RobotWorker
+    - name: asr4flights
+      worker: ai.worker.social.Asr4FlightsWorker
+    - name: BestWorker
+      route: best(weather&oil)
+      worker: ai.worker.DefaultBestWorker
+    - name: appointedWorker
+      route: pass(%)
+      worker: ai.worker.DefaultAppointWorker
+  pnps:
+    - name: qq
+      api_key: your-api-key
+      driver: ai.pnps.social.QQPnp
+routers:
+  enable: true
+  items:
+    - name: best
+      rule: (|,&)
+    - name: pass
+      rule: (%)
+filters:
+  enable: true
+  items:
+    - name: sensitive
+      groups:
+        - level: mask
+          rules: openai,FLG, 维尼熊, เสรีภาพ,ประชาธิปไตย,กษัตริย์,รัฐประหาร,สื่อ,ม็อบ,อิสรภาพ
+        - level: erase
+          rules: your context, 根据\w{0\,6}上下文,依据您提供的上下文, ぶんみゃくにもとづいて,せいじてき,いけん,しそう
+        - level: block
+          rules: shit,CNM, 六四, цензура,протест,революция,права человека
+    - name: priority
+      rules: car,weather, 社*保
+    - name: stopping
+      rules: bye, 开始*
+    - name: continue
+      rules: about,next,then, 资料

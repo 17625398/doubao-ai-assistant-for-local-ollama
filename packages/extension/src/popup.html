@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豆包 AI 助手</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      color: #3b82f6;
+    }
+    .feature {
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #f3f4f6;
+      border-radius: 6px;
+    }
+    .feature h2 {
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 5px;
+      color: #1f2937;
+    }
+    .feature p {
+      font-size: 12px;
+      margin: 0;
+      color: #6b7280;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-top: 15px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: center;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .status.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .status.error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+  </style>
+</head>
+<body>
+  <h1>豆包 AI 助手</h1>
+  
+  <div class="feature">
+    <h2>网页内容提取</h2>
+    <p>一键提取网页内容，进行智能分析</p>
+  </div>
+  
+  <div class="feature">
+    <h2>选中内容分析</h2>
+    <p>分析选中的文本，提供专业见解</p>
+  </div>
+  
+  <div class="feature">
+    <h2>智能助手</h2>
+    <p>基于本地 Ollama 模型的智能分析</p>
+  </div>
+  
+  <a href="side-panel/index.html" class="button" target="_blank">打开分析面板</a>
+  <a href="options/index.html" class="button" target="_blank">扩展设置</a>
+  
+  <div id="status" class="status"></div>
+  
+  <script>
+    // 测试连接
+    async function testConnection() {
+      const status = document.getElementById('status');
+      status.textContent = '测试连接中...';
+      status.className = 'status';
+      
+      try {
+        const response = await chrome.runtime.sendMessage({ type: 'TEST_CONNECTION' });
+        if (response.success && response.data) {
+          status.textContent = 'Ollama 服务正常运行';
+          status.className = 'status success';
+        } else {
+          status.textContent = 'Ollama 服务未运行，请启动 Ollama';
+          status.className = 'status error';
+        }
+      } catch (error) {
+        status.textContent = '连接失败，请检查 Ollama 服务';
+        status.className = 'status error';
+      }
+    }
+    
+    // 页面加载时测试连接
+    window.addEventListener('load', testConnection);
+  </script>
+</body>
+</html>

@@ -6,6 +6,9 @@
 export enum TextPickerAction {
   COPY = 'copy',
   SEARCH = 'search',
+  OPEN = 'open',
+  EMAIL = 'email',
+  CALL = 'call',
   TRANSLATE = 'translate',
   EXPLAIN = 'explain',
   SUMMARIZE = 'summarize',
@@ -28,6 +31,8 @@ export interface TextPickerConfig {
   enableInWeb: boolean;
   /** 自定义操作 */
   customActions?: TextPickerCustomAction[];
+  /** 是否启用自定义右键菜单 */
+  enableContextMenu?: boolean;
 }
 
 /**

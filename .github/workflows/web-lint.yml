@@ -1,0 +1,221 @@
+name: Web Lint & Typecheck
+
+on:
+  push:
+    paths:
+      - 'packages/web/**'
+      - 'packages/core/**'
+      - '.github/workflows/web-lint.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    paths:
+      - 'packages/web/**'
+      - 'packages/core/**'
+      - '.github/workflows/web-lint.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+concurrency:
+  group: web-lint-${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      core: ${{ steps.filter.outputs.core }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            web:
+              - 'packages/web/**'
+            core:
+              - 'packages/core/**'
+
+  lint:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add TypeScript matcher (web, PR)
+        if: github.event_name == 'pull_request'
+        run: echo "::add-matcher::.github/problem-matchers/tsc.json"
+
+      - name: ESLint (web, PR annotate)
+        if: github.event_name == 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/web lint:gha -- --max-warnings=0
+
+      - name: ESLint (web)
+        if: github.event_name != 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/web lint -- --max-warnings=0
+
+      - name: Typecheck (web, PR annotate)
+        if: github.event_name == 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/web typecheck -- --pretty false
+
+      - name: Typecheck (web)
+        if: github.event_name != 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/web typecheck
+
+      - name: Prettier annotate (web, PR)
+        if: github.event_name == 'pull_request'
+        uses: wearerequired/lint-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prettier: true
+          prettier_extensions: "ts,tsx,js,jsx,json,css,scss,md,yml,yaml"
+          auto_fix: false
+          continue_on_error: false
+          working_directory: packages/web
+
+      - name: Prettier check (web)
+        if: github.event_name != 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/web format
+
+  core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add TypeScript matcher (core, PR)
+        if: github.event_name == 'pull_request'
+        run: echo "::add-matcher::.github/problem-matchers/tsc.json"
+
+      - name: Typecheck (core)
+        if: github.event_name != 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/core typecheck
+
+      - name: Typecheck (core, PR annotate)
+        if: github.event_name == 'pull_request'
+        run: npm run -w @ai-intelligent-analysis-platform/core typecheck -- --pretty false
+
+      - name: ESLint (core)
+        run: npm run -w @ai-intelligent-analysis-platform/core lint:eslint -- --max-warnings=0
+
+      - name: Unit tests (core)
+        run: npm run -w @ai-intelligent-analysis-platform/core test
+        continue-on-error: true
+
+  web-build:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Restore Next build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/web/.next/cache
+          key: next-cache-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            next-cache-${{ runner.os }}-${{ matrix.node }}-
+            next-cache-${{ runner.os }}-
+      - name: Next build (web)
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_OPTIONS: --max_old_space_size=4096
+        run: npm run -w @ai-intelligent-analysis-platform/web build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-next-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            packages/web/.next/standalone
+            packages/web/.next/static
+          retention-days: 3
+
+  monorepo:
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Turbo env
+        run: echo "TURBO configured"
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      - name: Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.ref }}-
+            turbo-${{ runner.os }}-
+      - name: Turbo lint (monorepo)
+        run: npm run lint
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      - name: Turbo typecheck (monorepo)
+        run: npm run typecheck
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

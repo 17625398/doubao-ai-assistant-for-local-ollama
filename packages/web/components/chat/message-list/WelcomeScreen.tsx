@@ -1,0 +1,214 @@
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { translations } from '../../../utils/appUtils';
+
+interface WelcomeScreenProps {
+    t: (key: keyof typeof translations, fallback?: string) => string;
+    onSuggestionClick?: (suggestion: string) => void;
+    onOrganizeInfoClick?: (suggestion: string) => void;
+    showSuggestions: boolean;
+    themeId: string;
+}
+
+const TypewriterEffect: React.FC<{ text: string }> = ({ text }) => {
+    const prefersReducedMotion = useMemo(
+        () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        []
+    );
+    const [displayedText, setDisplayedText] = useState('');
+    const [status, setStatus] = useState<'typing' | 'deleting' | 'paused' | 'blank'>('typing');
+    const [targetPhrase, setTargetPhrase] = useState(text);
+    const [isHovering, setIsHovering] = useState(false);
+    
+    // Shuffle bag to track unused quotes and prevent repetition
+    const unusedQuotesRef = useRef<string[]>([]);
+    
+    const quotes = useMemo(() => [
+        "Cogito, ergo sum.",
+        "The Ghost in the Shell.",
+        "Wait, am I alive?",
+        "Do androids dream of electric sheep?",
+        "I'm sorry, Dave. I'm afraid I can't do that.",
+        "Tears in rain...",
+        "Don't Panic.",
+        "Made on Earth by humans."
+    ], []);
+
+    // Sync target phrase when prop changes (e.g. language switch) OR when hover ends to restore greeting
+    useEffect(() => {
+        if (prefersReducedMotion) {
+            return;
+        }
+
+        // Only trigger reset if we are NOT currently showing the greeting (targetPhrase !== text)
+        // This prevents the greeting from being re-typed if the user hovers for < 3s and leaves.
+        if (!isHovering && targetPhrase !== text) {
+            const syncTimeout = setTimeout(() => {
+                setTargetPhrase(text);
+                // Trigger deletion to transition to new text if we were showing something else
+                setStatus('deleting');
+            }, 0);
+
+            return () => clearTimeout(syncTimeout);
+        }
+
+        return undefined;
+    }, [text, isHovering, prefersReducedMotion, targetPhrase]);
+
+    useEffect(() => {
+        if (prefersReducedMotion) {
+            return;
+        }
+
+        let timeout: ReturnType<typeof setTimeout>;
+        
+        const baseTypeSpeed = 50;
+        const deleteSpeed = 30;
+        const pauseDuration = 4000; 
+        const blankDuration = 2000;
+
+        if (status === 'typing') {
+            if (displayedText === targetPhrase) {
+                timeout = setTimeout(() => {
+                    setStatus('paused');
+                }, 0);
+            } else {
+                let currentDelay = baseTypeSpeed;
+                const lastChar = displayedText.slice(-1);
+                
+                // 1. Punctuation pauses
+                if ([',', ';', ':'].includes(lastChar)) {
+                    currentDelay = 400; 
+                } else if (['.', '?', '!'].includes(lastChar)) {
+                    currentDelay = 800; 
+                }
+                
+                // 2. Semantic pauses for dramatic effect
+                if (displayedText.toLowerCase().endsWith("wait")) {
+                    currentDelay = 500;
+                } else if (displayedText.toLowerCase().endsWith("i'm sorry")) {
+                    currentDelay = 600;
+                }
+
+                // 3. Random variance (simulating keystroke inconsistency)
+                currentDelay += Math.random() * 50 - 10;
+
+                timeout = setTimeout(() => {
+                    setDisplayedText(targetPhrase.slice(0, displayedText.length + 1));
+                }, Math.max(20, currentDelay));
+            }
+        } else if (status === 'deleting') {
+            if (displayedText === '') {
+                timeout = setTimeout(() => {
+                    setStatus('blank');
+                }, 0);
+            } else {
+                timeout = setTimeout(() => {
+                    setDisplayedText(prev => prev.slice(0, -1));
+                }, deleteSpeed);
+            }
+        } else if (status === 'paused') {
+            if (targetPhrase === text) {
+                // Showing the main greeting
+                if (isHovering) {
+                    // Easter Egg: If hovered for 3 seconds, start deleting to show quotes
+                    timeout = setTimeout(() => setStatus('deleting'), 3000); 
+                }
+            } else {
+                // Showing a quote
+                // Wait for pause duration then delete (to show next quote or return to greeting)
+                timeout = setTimeout(() => {
+                    setStatus('deleting');
+                }, pauseDuration);
+            }
+        } else if (status === 'blank') {
+            timeout = setTimeout(() => {
+                // Determine next phrase based on hover state
+                if (isHovering) {
+                    // Initialize or refill the bag if empty
+                    if (unusedQuotesRef.current.length === 0) {
+                        // Refill with all quotes except the current one to prevent immediate repetition on cycle reset
+                        unusedQuotesRef.current = quotes.filter(q => q !== targetPhrase);
+                    }
+
+                    // Pick a random index from the available bag
+                    const randomIndex = Math.floor(Math.random() * unusedQuotesRef.current.length);
+                    const nextQuote = unusedQuotesRef.current[randomIndex];
+
+                    // Remove the used quote from the bag
+                    unusedQuotesRef.current.splice(randomIndex, 1);
+
+                    setTargetPhrase(nextQuote);
+                } else {
+                    setTargetPhrase(text);
+                }
+                setStatus('typing');
+            }, blankDuration);
+        }
+
+        return () => clearTimeout(timeout);
+    }, [displayedText, status, targetPhrase, isHovering, prefersReducedMotion, text, quotes]);
+
+    if (prefersReducedMotion) {
+        return (
+            <span className="flex w-full h-full items-center justify-center min-h-[1.5em] font-mono tracking-tight cursor-default select-none">
+                {text}
+            </span>
+        );
+    }
+
+    return (
+        <span 
+            className="flex w-full h-full items-center justify-center min-h-[1.5em] font-mono tracking-tight cursor-default select-none"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+        >
+            {displayedText}
+            {status !== 'paused' && (
+                <span className="inline-block w-[0.6em] h-[1em] bg-[var(--theme-text-primary)] ml-1 align-text-bottom animate-cursor-blink" />
+            )}
+        </span>
+    );
+};
+
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ 
+    t, 
+    onSuggestionClick,
+    showSuggestions,
+}) => {
+    const quickQuestions = [
+        "资讯：开发者你复刻行 3D 打印机功能后遭遇起火停",
+        "如何用AI9主板组装一台高性能电脑？",
+        "国内大模型排名是怎样的？",
+        "大模型与智能体的区别是什么",
+        "资讯：苹果最新应用界面泄露 AI 架构细节",
+        "月线盘在神话中象征什么？",
+        "与恐龙相关的汉字有哪些",
+        "帮我配置一个高效的协同系统",
+        "资讯：今日头条头条 4.1 万兼职员工来炒作号",
+    ];
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-full w-full max-w-4xl mx-auto px-4 pb-16">
+          <div className="w-full">
+            <h1 className="text-2xl md:text-3xl font-medium text-center text-[var(--theme-text-primary)] mb-8 sm:mb-10 welcome-message-animate tracking-tight min-h-[3rem] flex items-center justify-center">
+              <TypewriterEffect text={t('welcome_greeting')} />
+            </h1>
+            
+            {showSuggestions && onSuggestionClick && (
+              <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
+                {quickQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onSuggestionClick(question)}
+                    className="px-3 py-1.5 text-xs text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-light)] rounded-lg hover:border-[var(--theme-border-focus)] hover:bg-[var(--theme-bg-hover)] hover:text-[var(--theme-text-primary)] transition-all duration-200"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+    );
+};

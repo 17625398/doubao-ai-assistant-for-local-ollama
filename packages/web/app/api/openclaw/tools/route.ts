@@ -1,0 +1,21 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+const GW = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:18789'
+
+async function gw(method: string, path: string, body?: any) {
+  const url = `${GW}${path}`
+  const opts: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+  if (body !== undefined && method !== 'GET') opts.body = JSON.stringify(body)
+  const res = await fetch(url, opts)
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data }
+}
+
+export async function GET() {
+  try {
+    const r = await gw('GET', '/api/tools')
+    return NextResponse.json({ success: true, tools: r.data.tools || r.data || [] })
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  }
+}

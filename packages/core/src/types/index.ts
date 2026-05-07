@@ -1,9 +1,17 @@
 // 核心类型定义
+export * from './rbac';
 
 export interface MessagePayload {
   type: string;
   data?: unknown;
   url?: string;
+  tabId?: number;
+  // OpenCLI 命令相关
+  action?: string;
+  selector?: string;
+  value?: string;
+  // OpenCLI 队列相关
+  commands?: Array<{ action: string; selector?: string; value?: string }>;
 }
 
 export interface CaptureResponse {
@@ -31,13 +39,59 @@ export interface ClosePageRequest {
 
 export type ContentScriptMessage = ScreenshotRequest | ClosePageRequest;
 
+// 消息状态
+ export type MessageStatus = 'generating' | 'completed' | 'failed';
+
+// 消息类型
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'file';
+
+// 文档类型
+export type DocumentType = 'text' | 'markdown' | 'pdf' | 'word' | 'excel' | 'powerpoint' | 'image' | 'other';
+
+// 文档状态
+export type DocumentStatus = 'processing' | 'completed' | 'failed';
+
 // AI 聊天相关类型
+export type ChatMessageSource = 'default' | 'openclaw';
+export type DialogIntent =
+  | 'general_chat'
+  | 'search'
+  | 'summary'
+  | 'analysis'
+  | 'writing'
+  | 'task'
+  | 'document'
+  | 'tool_call';
+
+export interface SuggestedFollowUp {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
+export interface StructuredAssistantResponse {
+  summary: string;
+  answer: string;
+  evidence?: string[];
+  suggestedFollowUps: SuggestedFollowUp[];
+  actions?: string[];
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
   attachments?: Attachment[];
+  status?: MessageStatus;
+  type?: MessageType;
+  error?: string;
+  userId?: string;
+  sessionId?: string;
+  source?: ChatMessageSource;
+  sourceLabel?: string;
+  intent?: DialogIntent;
+  structuredResponse?: StructuredAssistantResponse;
 }
 
 export interface Attachment {
@@ -53,6 +107,11 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+  batchProcessing?: {
+    isActive: boolean;
+    totalBatches: number;
+    currentBatch: number;
+  };
 }
 
 // 扩展配置类型
@@ -114,6 +173,21 @@ export interface OllamaConfig {
   modelParams?: ModelParams;
 }
 
+export interface LinkMindConfig {
+  /** 服务器地址 */
+  baseUrl: string;
+  /** API 密钥 */
+  apiKey?: string;
+  /** 传输模式：直连/后端中继/代理 */
+  transportMode?: 'direct' | 'backend-relay' | 'proxy';
+  /** 同源网关路径（browser 下优先） */
+  gatewayPath?: string;
+  /** 超时时间（毫秒） */
+  timeout?: number;
+  /** 默认模型 */
+  defaultModel?: string;
+}
+
 /**
  * Ollama 模型信息
  */
@@ -150,6 +224,8 @@ export interface OllamaGenerateRequest {
   stream?: boolean;
   /** 生成参数 */
   options?: OllamaGenerateOptions;
+  /** 中止信号 */
+  signal?: AbortSignal;
 }
 
 /**
@@ -201,10 +277,14 @@ export interface OllamaChatRequest {
   model: string;
   /** 消息列表 */
   messages: OllamaChatMessage[];
+  /** 系统提示词 */
+  system?: string;
   /** 是否流式输出 */
   stream?: boolean;
   /** 生成参数 */
   options?: OllamaGenerateOptions;
+  /** 中止信号 */
+  signal?: AbortSignal;
 }
 
 /**
@@ -236,7 +316,9 @@ export interface OllamaChatResponse {
 /**
  * AI 服务提供商类型
  */
-export type AIProvider = 'ollama' | 'openai' | 'custom';
+export type AIProvider = 'ollama' | 'openai' | 'custom' | 'linkmind';
+
+export type ResponseStylePreset = 'normal' | 'caveman-lite' | 'caveman' | 'caveman-ultra' | 'wenyan-lite' | 'wenyan' | 'wenyan-ultra' | 'concise' | 'technical' | 'code';
 
 /**
  * 代理配置
@@ -260,6 +342,8 @@ export interface UIConfig {
   autoOpen: boolean;
   /** 是否启用上下文菜单 */
   contextMenu: boolean;
+  /** 回答风格 */
+  responseStyle: ResponseStylePreset;
 }
 
 /**
@@ -328,6 +412,8 @@ export interface AIServiceConfig {
   openai?: OpenAIConfig;
   /** 自定义服务配置 */
   custom?: CustomServiceConfig;
+  /** LinkMind 配置 */
+  linkmind?: LinkMindConfig;
   /** UI 配置 */
   ui?: UIConfig;
   /** 隐私配置 */
@@ -335,3 +421,96 @@ export interface AIServiceConfig {
 }
 
 // Chrome 扩展 API 类型 - 使用 @types/chrome 包提供的类型
+
+// 内容提取相关类型
+export interface ExtractionOptions {
+  maxContentLength?: number;
+  includeImages?: boolean;
+  includeLinks?: boolean;
+}
+
+export interface ExtractedContent {
+  title: string;
+  text: string;
+  html: string;
+  images: string[];
+  links: string[];
+}
+
+export interface ContentExtractionResult {
+  url: string;
+  content: ExtractedContent;
+  extractedAt: number;
+  success: boolean;
+  error?: string;
+}
+
+// 文档相关类型
+export interface DocumentMetadata {
+  name: string;
+  size: number;
+  type: string;
+  lastModified: number;
+  documentType?: DocumentType;
+}
+
+export interface DocumentContent {
+  text: string;
+  html: string;
+  images: string[];
+}
+
+export interface DocumentAnalysis {
+  summary: string;
+  keywords: string[];
+  topics: string[];
+  entities?: string[];
+  mainPoints?: string[];
+  questions?: string[];
+}
+
+export interface Document {
+  id: string;
+  metadata: DocumentMetadata;
+  content: DocumentContent;
+  analysis: DocumentAnalysis;
+  processedAt: number;
+  status?: DocumentStatus;
+  error?: string;
+  userId?: string;
+  sessionId?: string;
+}
+
+// 设置相关类型
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  notifications: boolean;
+  autoSave: boolean;
+  fontSize: number;
+  fontFamily: string;
+  compactMode?: boolean;
+  animations?: boolean;
+  keyboardShortcuts?: boolean;
+  spellCheck?: boolean;
+}
+
+export interface SystemConfig {
+  ollamaUrl: string;
+  defaultModel: string;
+  timeout: number;
+  maxRetries: number;
+  cacheSize: number;
+  enableLogging: boolean;
+  enableTelemetry?: boolean;
+  maxConcurrentRequests?: number;
+  enableCaching?: boolean;
+}
+
+export interface Settings {
+  userPreferences: UserPreferences;
+  systemConfig: SystemConfig;
+}
+
+// 技能类型
+export * from './skill';

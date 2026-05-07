@@ -78,7 +78,7 @@ npm run build:extension
 
 项目使用环境变量进行配置：
 
-- **OLLAMA_BASE_URL**: Ollama 服务地址（默认：http://localhost:11434）
+- **OLLAMA_BASE_URL**: Ollama 服务地址（默认：http://192.168.0.32:11434）
 - **DEFAULT_MODEL**: 默认使用的 AI 模型（默认：llama2）
 - **MAX_CACHE_SIZE**: 缓存最大大小（默认：50）
 - **CACHE_EXPIRY**: 缓存过期时间（默认：3600000 毫秒）
@@ -90,6 +90,84 @@ npm run build:extension
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 DEFAULT_MODEL=llama2
+```
+
+### 生产环境配置
+
+#### 非Docker环境编译后修改OLLAMA_BASE_URL
+
+在非Docker环境编译后部署到生产环境时，OLLAMA_BASE_URL是通过环境变量设置的，不需要重新编译代码。以下是具体的设置方法：
+
+1. **启动时直接设置环境变量**
+   ```bash
+   # Linux/macOS
+   OLLAMA_BASE_URL=http://your-ollama-server:11434 node server.js
+   
+   # Windows PowerShell
+   $env:OLLAMA_BASE_URL="http://your-ollama-server:11434"; node server.js
+   
+   # Windows 命令提示符
+   set OLLAMA_BASE_URL=http://your-ollama-server:11434 && node server.js
+   ```
+
+2. **创建启动脚本**
+   - **Linux/macOS (start.sh)**
+     ```bash
+     #!/bin/bash
+     export OLLAMA_BASE_URL=http://your-ollama-server:11434
+     node server.js
+     ```
+   - **Windows (start.bat)**
+     ```batch
+     @echo off
+     set OLLAMA_BASE_URL=http://your-ollama-server:11434
+     node server.js
+     ```
+
+3. **系统环境变量**
+   - **Linux/macOS**
+     ```bash
+     # 永久设置
+     echo 'export OLLAMA_BASE_URL=http://your-ollama-server:11434' >> /etc/environment
+     source /etc/environment
+     ```
+   - **Windows Server**
+     1. 右键点击"此电脑" → "属性" → "高级系统设置" → "环境变量"
+     2. 在"系统变量"中点击"新建"
+     3. 变量名：`OLLAMA_BASE_URL`
+     4. 变量值：`http://your-ollama-server:11434`
+     5. 点击"确定"保存
+
+4. **使用进程管理工具**
+   - **PM2**
+     ```javascript
+     // ecosystem.config.js
+     module.exports = {
+       apps: [
+         {
+           name: "your-app",
+           script: "server.js",
+           env: {
+             OLLAMA_BASE_URL: "http://your-ollama-server:11434"
+           }
+         }
+       ]
+     };
+     ```
+
+#### Docker环境配置
+
+在Docker环境中，可以在`docker-compose.yml`文件中添加环境变量：
+
+```yaml
+services:
+  web:
+    build: ./packages/web
+    ports:
+      - "3000:3000"
+    environment:
+      - OLLAMA_BASE_URL=http://your-ollama-server:11434
+    restart: unless-stopped
 ```
 
 ## 性能优化

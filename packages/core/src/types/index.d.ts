@@ -23,12 +23,15 @@ export interface ClosePageRequest {
     url: string;
 }
 export type ContentScriptMessage = ScreenshotRequest | ClosePageRequest;
+export type ChatMessageSource = 'default' | 'openclaw';
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
     attachments?: Attachment[];
+    source?: ChatMessageSource;
+    sourceLabel?: string;
 }
 export interface Attachment {
     type: 'image' | 'file' | 'audio';
@@ -208,7 +211,7 @@ export interface OllamaChatResponse {
 /**
  * AI 服务提供商类型
  */
-export type AIProvider = 'ollama' | 'openai' | 'custom';
+export type AIProvider = 'ollama' | 'openai' | 'custom' | 'linkmind';
 /**
  * AI 服务配置
  */
@@ -236,5 +239,10 @@ export interface AIServiceConfig {
         timeout?: number;
         streamEnabled?: boolean;
         modelParams?: ModelParams;
+    };
+    /** LinkMind 配置 */
+    linkmind?: {
+        baseUrl: string;
+        apiKey?: string;
     };
 }

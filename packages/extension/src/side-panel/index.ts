@@ -1,469 +1,229 @@
-// Side Panel 主逻辑
+import './styles.css'
+import type {
+  DiagnosticReport,
+  DoubaoArtifactListResult,
+  DoubaoArtifactRecord,
+  DoubaoExtensionMessage,
+  DoubaoPageContext,
+  DoubaoSkillRequest,
+  DoubaoSkillResult,
+} from '../shared/protocol'
 
-import { logger } from '@core/utils/logger';
-import { ChatMessage, ChatSession } from '@core/types';
-import { aiConfigManager, ollamaClient, OpenAICompatibleClient, OpenAICompatibleChatMessage } from '@core/index';
+let currentContext: DoubaoPageContext | null = null
+let lastSkill: DoubaoSkillRequest['skillId'] = 'summarize'
+let historyVisible = false
 
-logger.setPrefix('[Doubao SidePanel]');
+function byId<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id)
+  if (!element) throw new Error(`Missing element: ${id}`)
+  return element as T
+}
 
-class SidePanel {
-  private messageInput: HTMLTextAreaElement;
-  private sendBtn: HTMLButtonElement;
-  private messagesContainer: HTMLElement;
-  private currentSession: ChatSession | null = null;
-  private isLoading = false;
-
-  constructor() {
-    this.messageInput = document.getElementById('message-input') as HTMLTextAreaElement;
-    this.sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
-    this.messagesContainer = document.getElementById('messages') as HTMLElement;
-
-    void this.init();
-  }
-
-  private async init(): Promise<void> {
-    this.setupEventListeners();
-    await this.checkPendingNewChat();
-    await this.loadSession();
-    this.hideSkeleton();
-
-    await this.checkSelectedText();
-    await this.checkPendingScreenshot();
-    await this.checkPendingReadPage();
-
-    logger.info('Side panel initialized');
-  }
-
-  private setupEventListeners(): void {
-    // 发送消息
-    this.sendBtn.addEventListener('click', () => this.sendMessage());
-
-    // 输入框回车发送
-    this.messageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.sendMessage();
+function sendMessage<T>(message: DoubaoExtensionMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, response => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
       }
-    });
-
-    // 输入框自动调整高度
-    this.messageInput.addEventListener('input', () => {
-      this.adjustTextareaHeight();
-      this.updateSendButton();
-    });
-
-    // 新建对话
-    document.getElementById('new-chat-btn')?.addEventListener('click', () => {
-      this.createNewSession();
-    });
-
-    // 截图按钮
-    document.getElementById('screenshot-btn')?.addEventListener('click', () => {
-      this.captureScreenshot();
-    });
-
-    document.getElementById('read-page-btn')?.addEventListener('click', () => {
-      this.readCurrentPage();
-    });
-
-    // 设置按钮
-    document.getElementById('settings-btn')?.addEventListener('click', () => {
-      chrome.runtime.openOptionsPage();
-    });
-  }
-
-  private adjustTextareaHeight(): void {
-    this.messageInput.style.height = 'auto';
-    this.messageInput.style.height = `${Math.min(this.messageInput.scrollHeight, 120)}px`;
-  }
-
-  private updateSendButton(): void {
-    const hasContent = this.messageInput.value.trim().length > 0;
-    this.sendBtn.disabled = !hasContent || this.isLoading;
-  }
-
-  private async sendMessage(): Promise<void> {
-    const content = this.messageInput.value.trim();
-    if (!content || this.isLoading) return;
-
-    if (!this.currentSession) {
-      await this.createNewSession();
-    }
-
-    // 添加用户消息
-    const userMessage: ChatMessage = {
-      id: this.generateId(),
-      role: 'user',
-      content,
-      timestamp: Date.now(),
-    };
-
-    this.addMessageToUI(userMessage);
-    this.appendMessageToSession(userMessage);
-    await this.saveCurrentSession();
-    this.messageInput.value = '';
-    this.adjustTextareaHeight();
-    this.updateSendButton();
-
-    // 模拟AI回复
-    this.isLoading = true;
-    this.updateSendButton();
-
-    try {
-      const response = await this.getAIResponse();
-      const aiMessage: ChatMessage = {
-        id: this.generateId(),
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      };
-      this.addMessageToUI(aiMessage);
-      this.appendMessageToSession(aiMessage);
-      await this.saveCurrentSession();
-    } catch (error) {
-      logger.error('Failed to get AI response:', error);
-      const message = error instanceof Error ? error.message : '获取回复失败，请稍后重试';
-      this.addErrorMessage(message);
-    } finally {
-      this.isLoading = false;
-      this.updateSendButton();
-    }
-  }
-
-  private async getAIResponse(): Promise<string> {
-    await aiConfigManager.ensureLoaded();
-    const config = aiConfigManager.getConfig();
-    const messages = (this.currentSession?.messages || [])
-      .filter((m) => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
-      .slice(-10);
-
-    if (config.provider === 'ollama' && config.ollama) {
-      // 通过后台脚本来与Ollama通信，避免CORS问题
-      try {
-        // 向后台脚本发送消息，请求与Ollama通信
-        const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage(
-            {
-              type: 'ollamaChat',
-              data: {
-                model: config.ollama!.defaultModel || 'fredrezones55/qwen3.5-opus:27b',
-                messages: messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
-                stream: false,
-              },
-            },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError.message));
-                return;
-              }
-              resolve(response);
-            }
-          );
-        });
-
-        const result = response as { code: number; data?: { message?: { content?: string } }; error?: string };
-        if (result.code !== 0) {
-          throw new Error(result.error || 'Ollama 服务请求失败');
-        }
-
-        return result.data?.message?.content || '';
-      } catch (error) {
-        logger.error('Ollama 服务请求失败:', error);
-        throw new Error(`Ollama 服务请求失败：${error instanceof Error ? error.message : String(error)}`);
+      if (!response?.ok) {
+        reject(new Error(response?.error || '请求失败'))
+        return
       }
-    }
+      resolve(response.data as T)
+    })
+  })
+}
 
-    if (config.provider === 'openai' && config.openai) {
-      if (!config.openai.apiKey) {
-        throw new Error('OpenAI API Key 未配置，请在设置中填写');
-      }
-      const client = new OpenAICompatibleClient({
-        baseUrl: config.openai.baseUrl || 'https://api.openai.com/v1',
-        apiKey: config.openai.apiKey,
-        defaultModel: config.openai.defaultModel,
-        timeout: config.openai.timeout ?? 30000,
-        streamEnabled: config.openai.streamEnabled ?? false,
-        headers: config.openai.headers,
-      });
+function setText(id: string, value: string): void {
+  byId(id).textContent = value
+}
 
-      const response = await client.chat({
-        model: config.openai.defaultModel,
-        messages: messages.map((m) => ({
-          role: m.role as 'system' | 'user' | 'assistant',
-          content: m.content,
-        })) as OpenAICompatibleChatMessage[],
-      });
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 
-      return response.content || '';
-    }
+function renderContext(context: DoubaoPageContext | null): void {
+  currentContext = context
+  const card = byId('context-card')
+  card.classList.toggle('loading', !context)
+  card.classList.toggle('ready', Boolean(context))
 
-    if (config.provider === 'custom' && config.custom) {
-      if (!config.custom.baseUrl) {
-        throw new Error('自定义服务 Base URL 未配置，请在设置中填写');
-      }
-      const client = new OpenAICompatibleClient({
-        baseUrl: config.custom.baseUrl,
-        apiKey: config.custom.apiKey,
-        defaultModel: config.custom.defaultModel,
-        timeout: config.custom.timeout ?? 30000,
-        streamEnabled: config.custom.streamEnabled ?? false,
-        headers: config.custom.headers,
-      });
-
-      const response = await client.chat({
-        model: config.custom.defaultModel,
-        messages: messages.map((m) => ({
-          role: m.role as 'system' | 'user' | 'assistant',
-          content: m.content,
-        })) as OpenAICompatibleChatMessage[],
-      });
-
-      return response.content || '';
-    }
-
-    throw new Error('AI 服务未配置，请打开设置完成配置');
+  if (!context) {
+    setText('page-title', '等待页面上下文')
+    setText('page-url', '打开网页后点击右下角豆包按钮，或使用右键菜单。')
+    setText('stat-chars', '--')
+    setText('stat-headings', '--')
+    setText('stat-links', '--')
+    setText('stat-images', '--')
+    return
   }
 
-  private addMessageToUI(message: ChatMessage): void {
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${message.role}`;
-    messageEl.innerHTML = `
-      <div class="message-avatar">
-        ${message.role === 'user' ? '👤' : '🤖'}
+  setText('page-title', context.title)
+  setText('page-url', context.url)
+  setText('stat-chars', String(context.stats.characters))
+  setText('stat-headings', String(context.stats.headings))
+  setText('stat-links', String(context.stats.links))
+  setText('stat-images', String(context.stats.images))
+}
+
+function renderResult(result: DoubaoSkillResult): void {
+  byId('result-empty').classList.add('hidden')
+  const container = byId('result-content')
+  container.classList.remove('hidden')
+  setText('result-time', new Date(result.generatedAt).toLocaleTimeString())
+
+  const sourceLabel = result.source === 'model' ? `模型：${escapeHtml(result.provider || 'unknown')}/${escapeHtml(result.model || 'unknown')}` : '本地回退'
+  container.innerHTML = `
+    <article class="artifact-card">
+      <div class="artifact-badge-row"><div class="artifact-badge">${escapeHtml(result.skillId)}</div><div class="source-badge ${result.source === 'model' ? 'model' : 'fallback'}">${sourceLabel}</div></div>
+      ${result.warning ? `<div class="warning-box">${escapeHtml(result.warning)}</div>` : ''}
+      <h2>${escapeHtml(result.title)}</h2>
+      <p class="artifact-summary">${escapeHtml(result.summary)}</p>
+      ${result.markdown ? `<pre class="model-markdown">${escapeHtml(result.markdown)}</pre>` : ''}
+      <div class="artifact-sections">${result.sections.map(section => `<section><h3>${escapeHtml(section.title)}</h3><ul>${section.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>`).join('')}</div>
+      <div class="prompt-chips">${result.suggestedPrompts.map(prompt => `<button data-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join('')}</div>
+    </article>
+  `
+
+  container.querySelectorAll<HTMLButtonElement>('[data-prompt]').forEach(button => {
+    button.addEventListener('click', () => {
+      byId<HTMLTextAreaElement>('prompt-input').value = button.dataset.prompt || ''
+      void runSkill(lastSkill)
+    })
+  })
+  void loadHistory()
+}
+
+function renderDiagnostics(report: DiagnosticReport): void {
+  byId('result-empty').classList.add('hidden')
+  const container = byId('result-content')
+  container.classList.remove('hidden')
+  setText('result-time', new Date(report.generatedAt).toLocaleTimeString())
+
+  container.innerHTML = `
+    <article class="artifact-card diagnostics-card">
+      <div class="artifact-badge-row"><div class="artifact-badge">diagnostics</div><div class="source-badge ${report.overallStatus}">总体：${escapeHtml(report.overallStatus)}</div></div>
+      <h2>${escapeHtml(report.title)}</h2>
+      <p class="artifact-summary">${escapeHtml(report.summary)}</p>
+      <div class="diagnostic-sections">
+        ${report.sections.map(section => `<section class="diagnostic-section"><div class="diagnostic-section-title"><h3>${escapeHtml(section.name)}</h3><span class="diagnostic-status ${section.status}">${escapeHtml(section.status)}</span></div>${section.checks.map(check => `<div class="diagnostic-check ${check.status}"><div class="diagnostic-check-head"><strong>${escapeHtml(check.name)}</strong><span>${escapeHtml(check.status)}</span></div><p>${escapeHtml(check.detail)}</p>${check.hint ? `<small>提示：${escapeHtml(check.hint)}</small>` : ''}${check.action ? `<small>建议操作：${escapeHtml(check.action)}</small>` : ''}</div>`).join('')}</section>`).join('')}
       </div>
-      <div class="message-content">
-        ${this.escapeHtml(message.content)}
-      </div>
-    `;
-    this.messagesContainer.appendChild(messageEl);
-    this.scrollToBottom();
+      <button id="copy-diagnostics" class="copy-diagnostics">复制诊断报告</button>
+    </article>
+  `
+
+  byId<HTMLButtonElement>('copy-diagnostics').addEventListener('click', () => {
+    void navigator.clipboard.writeText(report.exportText)
+  })
+  void loadHistory()
+}
+
+function renderArtifact(record: DoubaoArtifactRecord): void {
+  if (record.skillResult) renderResult(record.skillResult)
+  if (record.diagnosticReport) renderDiagnostics(record.diagnosticReport)
+}
+
+function renderHistory(records: DoubaoArtifactRecord[], total: number): void {
+  setText('history-count', `${total} 条`)
+  const list = byId('history-list')
+  if (records.length === 0) {
+    list.innerHTML = '<div class="history-empty">暂无 Artifact 历史</div>'
+    return
   }
+  list.innerHTML = records.map(record => `<article class="history-item" data-id="${escapeHtml(record.id)}"><div class="history-item-head"><span class="history-kind">${record.kind === 'skill-result' ? '技能' : '诊断'}</span><time>${new Date(record.createdAt).toLocaleString()}</time></div><h3>${escapeHtml(record.title)}</h3><p>${escapeHtml(record.summary)}</p><small>${escapeHtml(record.pageTitle || record.pageUrl || '无页面来源')}</small><div class="history-item-actions"><button data-action="open" data-id="${escapeHtml(record.id)}">打开</button><button data-action="delete" data-id="${escapeHtml(record.id)}">删除</button></div></article>`).join('')
+  list.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(button => {
+    button.addEventListener('click', () => {
+      const id = button.dataset.id || ''
+      const record = records.find(item => item.id === id)
+      if (button.dataset.action === 'open' && record) renderArtifact(record)
+      if (button.dataset.action === 'delete') void sendMessage<boolean>({ type: 'DOUBAO_DELETE_ARTIFACT', payload: { id } }).then(() => loadHistory())
+    })
+  })
+}
 
-  private addErrorMessage(error: string): void {
-    const errorEl = document.createElement('div');
-    errorEl.className = 'message system';
-    errorEl.innerHTML = `
-      <div class="message-content" style="background: #ffebee; color: #c62828;">
-        ⚠️ ${this.escapeHtml(error)}
-      </div>
-    `;
-    this.messagesContainer.appendChild(errorEl);
-    this.scrollToBottom();
-  }
+async function loadHistory(): Promise<void> {
+  const result = await sendMessage<DoubaoArtifactListResult>({ type: 'DOUBAO_LIST_ARTIFACTS', payload: { limit: 30 } })
+  renderHistory(result.records, result.total)
+}
 
-  private scrollToBottom(): void {
-    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-  }
-
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private async loadSession(): Promise<void> {
-    // 加载或创建会话
-    const result = await chrome.storage.local.get('currentSession');
-    if (result.currentSession) {
-      this.currentSession = result.currentSession;
-      const msgs = Array.isArray(this.currentSession?.messages) ? this.currentSession.messages : [];
-      if (msgs.length > 0) this.renderMessages();
-      else this.showWelcome();
-    } else {
-      this.showWelcome();
-    }
-  }
-
-  private renderMessages(): void {
-    if (!this.currentSession) return;
-
-    this.messagesContainer.innerHTML = '';
-    this.currentSession.messages.forEach((msg) => {
-      this.addMessageToUI(msg);
-    });
-  }
-
-  private showWelcome(): void {
-    this.messagesContainer.innerHTML = `
-      <div class="welcome-message">
-        <h2>👋 欢迎使用豆包AI助手</h2>
-        <p>我可以帮你解答问题、写作、翻译、编程等</p>
-      </div>
-    `;
-  }
-
-  private async createNewSession(): Promise<void> {
-    this.currentSession = {
-      id: this.generateId(),
-      title: '新对话',
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    await chrome.storage.local.set({ currentSession: this.currentSession });
-    this.showWelcome();
-    logger.info('New session created');
-  }
-
-  private appendMessageToSession(message: ChatMessage): void {
-    if (!this.currentSession) return;
-    this.currentSession.messages.push(message);
-    this.currentSession.updatedAt = Date.now();
-  }
-
-  private async saveCurrentSession(): Promise<void> {
-    if (!this.currentSession) return;
-    await chrome.storage.local.set({ currentSession: this.currentSession });
-  }
-
-  private async captureScreenshot(): Promise<void> {
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'capture' });
-      if (response.code === 0 && response.data) {
-        if (!this.currentSession) {
-          await this.createNewSession();
-        }
-
-        const message: ChatMessage = {
-          id: this.generateId(),
-          role: 'user',
-          content: '[截图]',
-          timestamp: Date.now(),
-          attachments: [{
-            type: 'image',
-            url: response.data,
-            name: 'screenshot.png',
-          }],
-        };
-        this.addMessageToUI(message);
-        this.appendMessageToSession(message);
-        await this.saveCurrentSession();
-      }
-    } catch (error) {
-      logger.error('Screenshot failed:', error);
-      this.addErrorMessage('截图失败');
-    }
-  }
-
-  private async checkSelectedText(): Promise<void> {
-    const result = await chrome.storage.local.get('selectedText');
-    if (result.selectedText) {
-      this.messageInput.value = `请解释以下内容：\n${result.selectedText}`;
-      this.adjustTextareaHeight();
-      this.updateSendButton();
-      // 清除选中的文本
-      await chrome.storage.local.remove('selectedText');
-    }
-  }
-
-  private async readCurrentPage(): Promise<void> {
-    try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-      if (!tab?.id) {
-        this.addErrorMessage('未找到当前页面');
-        return;
-      }
-
-      const response = await chrome.tabs.sendMessage(tab.id, { type: 'readPage', maxChars: 120_000, extractLinkUrl: false, extractImageUrl: false, maxUrls: 200 });
-      if (!response || response.code !== 0) {
-        this.addErrorMessage('读取网页失败');
-        return;
-      }
-
-      const url = typeof response.url === 'string' ? response.url : tab.url || '';
-      const title = typeof response.title === 'string' ? response.title : tab.title || '';
-      const content = typeof response.data === 'string' ? response.data : '';
-
-      if (!content) {
-        this.addErrorMessage('网页内容为空或不可读取');
-        return;
-      }
-
-      const next = `【网页内容】\n标题：${title}\n链接：${url}\n\n${content}`;
-      const maxInputChars = 120_000;
-      this.messageInput.value = next.length > maxInputChars ? next.slice(0, maxInputChars) : next;
-      this.adjustTextareaHeight();
-      this.updateSendButton();
-    } catch (error) {
-      logger.error('Read page failed:', error);
-      this.addErrorMessage('读取网页失败');
-    }
-  }
-
-  private async checkPendingScreenshot(): Promise<void> {
-    try {
-      const result = await chrome.storage.local.get('pendingScreenshot');
-      const dataUrl = typeof result.pendingScreenshot === 'string' ? result.pendingScreenshot : '';
-      if (!dataUrl) return;
-
-      await chrome.storage.local.remove('pendingScreenshot');
-
-      if (!this.currentSession) {
-        await this.createNewSession();
-      }
-
-      const message: ChatMessage = {
-        id: this.generateId(),
-        role: 'user',
-        content: '[截图]',
-        timestamp: Date.now(),
-        attachments: [{
-          type: 'image',
-          url: dataUrl,
-          name: 'screenshot.png',
-        }],
-      };
-
-      this.addMessageToUI(message);
-      this.appendMessageToSession(message);
-      await this.saveCurrentSession();
-    } catch (error) {
-      logger.error('Failed to consume pendingScreenshot:', error);
-    }
-  }
-
-  private async checkPendingReadPage(): Promise<void> {
-    try {
-      const result = await chrome.storage.local.get('pendingReadPage');
-      if (!result.pendingReadPage) return;
-      await chrome.storage.local.remove('pendingReadPage');
-      await this.readCurrentPage();
-    } catch (error) {
-      logger.error('Failed to consume pendingReadPage:', error);
-    }
-  }
-
-  private async checkPendingNewChat(): Promise<void> {
-    try {
-      const result = await chrome.storage.local.get('pendingNewChat');
-      if (!result.pendingNewChat) return;
-      await chrome.storage.local.remove('pendingNewChat');
-      await this.createNewSession();
-    } catch (error) {
-      logger.error('Failed to consume pendingNewChat:', error);
-    }
-  }
-
-  private hideSkeleton(): void {
-    const skeleton = document.getElementById('skeleton');
-    const mainContent = document.getElementById('main-content');
-
-    if (skeleton && mainContent) {
-      setTimeout(() => {
-        skeleton.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-      }, 500);
-    }
+async function loadActiveContext(): Promise<void> {
+  try {
+    const context = await sendMessage<DoubaoPageContext | null>({ type: 'DOUBAO_GET_ACTIVE_CONTEXT' })
+    renderContext(context)
+  } catch {
+    renderContext(null)
   }
 }
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-  new SidePanel();
-});
+async function captureActiveTab(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+  const response = await chrome.tabs.sendMessage(tab.id, { type: 'DOUBAO_CAPTURE_PAGE_CONTEXT' }).catch(() => null)
+  if (response?.ok && response.data) {
+    const context = response.data as DoubaoPageContext
+    await sendMessage({ type: 'DOUBAO_PAGE_CONTEXT_CAPTURED', payload: context })
+    renderContext(context)
+  }
+}
+
+async function runSkill(skillId: DoubaoSkillRequest['skillId']): Promise<void> {
+  lastSkill = skillId
+  const prompt = byId<HTMLTextAreaElement>('prompt-input').value.trim()
+  const result = await sendMessage<DoubaoSkillResult>({ type: 'DOUBAO_ANALYZE_CONTEXT', payload: { skillId, prompt, context: currentContext } })
+  renderResult(result)
+}
+
+async function runDiagnostics(): Promise<void> {
+  const report = await sendMessage<DiagnosticReport>({ type: 'DOUBAO_RUN_DIAGNOSTICS' })
+  renderDiagnostics(report)
+}
+
+async function exportHistory(format: 'markdown' | 'json' = 'markdown'): Promise<void> {
+  const content = await sendMessage<string>({ type: 'DOUBAO_EXPORT_ARTIFACTS', payload: { format } })
+  await navigator.clipboard.writeText(content || '暂无 Artifact 历史')
+}
+
+async function clearHistory(): Promise<void> {
+  await sendMessage<number>({ type: 'DOUBAO_CLEAR_ARTIFACTS' })
+  await loadHistory()
+}
+
+function toggleHistory(): void {
+  historyVisible = !historyVisible
+  byId('history-panel').classList.toggle('hidden', !historyVisible)
+  if (historyVisible) void loadHistory()
+}
+
+function installEventListeners(): void {
+  byId('refresh-context').addEventListener('click', () => void captureActiveTab())
+  byId('run-diagnostics').addEventListener('click', () => void runDiagnostics())
+  byId('toggle-history').addEventListener('click', toggleHistory)
+  byId('export-history').addEventListener('click', () => void exportHistory('markdown'))
+  byId('export-history-json').addEventListener('click', () => void exportHistory('json'))
+  byId('clear-history').addEventListener('click', () => void clearHistory())
+  byId('run-custom').addEventListener('click', () => void runSkill(lastSkill))
+
+  byId<HTMLTextAreaElement>('prompt-input').addEventListener('keydown', event => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault()
+      void runSkill(lastSkill)
+    }
+  })
+
+  document.querySelectorAll<HTMLButtonElement>('[data-skill]').forEach(button => {
+    button.addEventListener('click', () => void runSkill(button.dataset.skill as DoubaoSkillRequest['skillId']))
+  })
+
+  chrome.runtime.onMessage.addListener((message: DoubaoExtensionMessage) => {
+    if (message.type === 'DOUBAO_RUN_SKILL') {
+      const request = message.payload as DoubaoSkillRequest
+      if (request.context) renderContext(request.context)
+      void runSkill(request.skillId)
+    }
+  })
+}
+
+installEventListeners()
+void loadActiveContext()
+void loadHistory()

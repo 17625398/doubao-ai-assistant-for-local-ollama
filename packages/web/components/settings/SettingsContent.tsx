@@ -1,0 +1,153 @@
+import React from 'react';
+import { AppSettings, ModelOption } from '../../types';
+import { DEFAULT_AUTO_CANVAS_MODEL_ID } from '../../constants/appConstants';
+import { SettingsTab } from '../../hooks/features/useSettingsLogic';
+import { ApiConfigSection } from './sections/ApiConfigSection';
+import { AppearanceSection } from './sections/AppearanceSection';
+import { ChatBehaviorSection } from './sections/ChatBehaviorSection';
+import { DataManagementSection } from './sections/DataManagementSection';
+import { ShortcutsSection } from './sections/ShortcutsSection';
+import { AboutSection } from './sections/AboutSection';
+import { SettingsTransferProps } from './settingsTypes';
+import type { LogViewerProps } from '../log-viewer/LogViewer';
+
+interface SettingsContentProps extends SettingsTransferProps {
+    activeTab: SettingsTab;
+    currentSettings: AppSettings;
+    availableModels: ModelOption[];
+    updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+    handleModelChange: (modelId: string) => void;
+    setAvailableModels: (models: ModelOption[]) => void;
+    onClearHistory: () => void;
+    onClearCache: () => void;
+    onOpenLogViewer: (state?: Pick<LogViewerProps, 'initialTab' | 'initialUsageTab'>) => void;
+    onClearLogs: () => void;
+    onReset: () => void;
+}
+
+export const SettingsContent: React.FC<SettingsContentProps> = ({
+    activeTab,
+    currentSettings,
+    availableModels,
+    updateSetting,
+    handleModelChange,
+    setAvailableModels,
+    onClearHistory,
+    onClearCache,
+    onOpenLogViewer,
+    onClearLogs,
+    onReset,
+    onInstallPwa,
+    installState,
+    onImportSettings,
+    onExportSettings,
+    onImportHistory,
+    onExportHistory,
+    onImportScenarios,
+    onExportScenarios,
+    t,
+}) => {
+    const animClass = "animate-in fade-in zoom-in-95 duration-200 ease-out";
+
+    const handleBatchUpdate = (updates: Partial<AppSettings>) => {
+        (Object.entries(updates) as Array<[keyof AppSettings, AppSettings[keyof AppSettings]]>).forEach(([key, value]) => {
+            updateSetting(key, value);
+        });
+    };
+
+    return (
+        <div className="max-w-3xl mx-auto w-full">
+            {activeTab === 'model' && (
+                <div className={`${animClass} max-w-4xl mx-auto`}>
+                    <ChatBehaviorSection
+                        modelId={currentSettings.modelId}
+                        setModelId={handleModelChange}
+                        transcriptionModelId={currentSettings.transcriptionModelId}
+                        setTranscriptionModelId={(v) => updateSetting('transcriptionModelId', v)}
+                        ttsVoice={currentSettings.ttsVoice}
+                        setTtsVoice={(v) => updateSetting('ttsVoice', v)}
+                        systemInstruction={currentSettings.systemInstruction}
+                        setSystemInstruction={(v) => updateSetting('systemInstruction', v)}
+                        temperature={currentSettings.temperature}
+                        setTemperature={(v) => updateSetting('temperature', v)}
+                        topP={currentSettings.topP}
+                        setTopP={(v) => updateSetting('topP', v)}
+                        topK={currentSettings.topK ?? 64}
+                        setTopK={(v) => updateSetting('topK', v)}
+                        showThoughts={currentSettings.showThoughts}
+                        setShowThoughts={(v) => updateSetting('showThoughts', v)}
+                        thinkingBudget={currentSettings.thinkingBudget}
+                        setThinkingBudget={(v) => updateSetting('thinkingBudget', v)}
+                        thinkingLevel={currentSettings.thinkingLevel}
+                        setThinkingLevel={(v) => updateSetting('thinkingLevel', v)}
+                        safetySettings={currentSettings.safetySettings}
+                        setSafetySettings={(v) => updateSetting('safetySettings', v)}
+                        mediaResolution={currentSettings.mediaResolution}
+                        setMediaResolution={(v) => updateSetting('mediaResolution', v)}
+                        autoCanvasVisualization={currentSettings.autoCanvasVisualization ?? false}
+                        setAutoCanvasVisualization={(v) => updateSetting('autoCanvasVisualization', v)}
+                        autoCanvasModelId={currentSettings.autoCanvasModelId || DEFAULT_AUTO_CANVAS_MODEL_ID}
+                        setAutoCanvasModelId={(v) => updateSetting('autoCanvasModelId', v)}
+                        availableModels={availableModels}
+                        t={t}
+                        setAvailableModels={setAvailableModels}
+                    />
+                </div>
+            )}
+            {activeTab === 'interface' && (
+                <div className={animClass}>
+                    <AppearanceSection
+                        settings={currentSettings}
+                        onUpdate={updateSetting}
+                    />
+                </div>
+            )}
+            {activeTab === 'account' && (
+                <div className={animClass}>
+                    <ApiConfigSection
+                        useCustomApiConfig={currentSettings.useCustomApiConfig}
+                        setUseCustomApiConfig={(val) => updateSetting('useCustomApiConfig', val)}
+                        apiKey={currentSettings.apiKey}
+                        setApiKey={(val) => updateSetting('apiKey', val)}
+                        apiProxyUrl={currentSettings.apiProxyUrl}
+                        setApiProxyUrl={(val) => updateSetting('apiProxyUrl', val)}
+                        useApiProxy={currentSettings.useApiProxy ?? false}
+                        setUseApiProxy={(val) => updateSetting('useApiProxy', val)}
+                        serverManagedApi={currentSettings.serverManagedApi ?? false}
+                        liveApiEphemeralTokenEndpoint={currentSettings.liveApiEphemeralTokenEndpoint ?? null}
+                        setLiveApiEphemeralTokenEndpoint={(val) => updateSetting('liveApiEphemeralTokenEndpoint', val)}
+                    />
+                </div>
+            )}
+            {activeTab === 'data' && (
+                <div className={animClass}>
+                    <DataManagementSection
+                        onClearHistory={onClearHistory}
+                        onClearCache={onClearCache}
+                        onOpenLogViewer={onOpenLogViewer}
+                        onClearLogs={onClearLogs}
+                        onInstallPwa={onInstallPwa}
+                        installState={installState}
+                        onImportSettings={onImportSettings}
+                        onExportSettings={onExportSettings}
+                        onImportHistory={onImportHistory}
+                        onExportHistory={onExportHistory}
+                        onImportScenarios={onImportScenarios}
+                        onExportScenarios={onExportScenarios}
+                        onReset={onReset}
+                    />
+                </div>
+            )}
+            {activeTab === 'shortcuts' && (
+                <div className={animClass}>
+                    <ShortcutsSection
+                        currentSettings={currentSettings}
+                        onUpdateSettings={handleBatchUpdate}
+                        t={t}
+                    />
+                </div>
+            )}
+            {activeTab === 'about' && <div className={animClass}><AboutSection /></div>}
+        </div>
+    );
+};

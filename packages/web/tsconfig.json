@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "downlevelIteration": true,
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -24,12 +19,16 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@core/*": [
-        "../core/src/*"
-      ]
+      "@/*": ["./*"],
+      "@/features/*": ["./*"],
+      "@core/*": ["../core/src/*"],
+      "@ai-intelligent-analysis-platform/core": ["../core/src/index.ts"],
+      "@ai-intelligent-analysis-platform/core/*": ["../core/src/*"],
+      "@doubao/core": ["../core/src/index.ts"],
+      "@doubao/core/*": ["../core/src/*"],
+      "@/libs/clean-url": ["./clean-url.d.ts"],
+      "@/libs/runtime": ["./utils/runtime/runtimeConfig.ts"],
+      "@/libs/reasoning": ["./utils/chat/reasoning.ts"]
     }
   },
   "include": [
@@ -39,7 +38,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules", "e2e"]
 }

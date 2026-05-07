@@ -1,0 +1,113 @@
+
+.history-panel {
+  min-height: 0;
+  max-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--panel);
+  padding: 14px;
+  backdrop-filter: blur(18px);
+}
+
+.history-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mini-button {
+  border: 1px solid rgba(147, 197, 253, 0.24);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.16);
+  color: #bfdbfe;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.mini-button.danger {
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
+.history-list {
+  display: grid;
+  max-height: 190px;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.history-empty {
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.52);
+  color: #94a3b8;
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.history-item {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.42);
+  padding: 10px;
+}
+
+.history-item-head,
+.history-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-kind {
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.18);
+  color: #ddd6fe;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.history-item time,
+.history-item small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.history-item h3 {
+  margin: 8px 0 4px;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.history-item p {
+  display: -webkit-box;
+  margin: 0 0 6px;
+  overflow: hidden;
+  color: #cbd5e1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.history-item-actions {
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.history-item-actions button {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  padding: 6px 9px;
+  font-size: 11px;
+}

@@ -6,9 +6,9 @@ import { logger } from './logger';
 /**
  * 缓存项
  */
-export interface CacheItem {
+export interface CacheItem<T = any> {
   key: string;
-  value: DocumentParseResult;
+  value: T;
   timestamp: number;
   expiry: number;
 }
@@ -28,7 +28,7 @@ export interface CacheConfig {
 export class CacheManager {
   private cache: Map<string, CacheItem> = new Map();
   private config: CacheConfig;
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config?: Partial<CacheConfig>) {
     this.config = {
@@ -93,9 +93,9 @@ export class CacheManager {
   /**
    * 设置缓存
    */
-  set(key: string, value: DocumentParseResult, expiry?: number): void {
+  set<T = any>(key: string, value: T, expiry?: number): void {
     const now = Date.now();
-    const item: CacheItem = {
+    const item: CacheItem<T> = {
       key,
       value,
       timestamp: now,
@@ -107,14 +107,14 @@ export class CacheManager {
       this.evictOldest();
     }
 
-    this.cache.set(key, item);
+    this.cache.set(key, item as CacheItem);
     logger.debug(`Cache set: ${key}`);
   }
 
   /**
    * 获取缓存
    */
-  get(key: string): DocumentParseResult | null {
+  get<T = any>(key: string): T | null {
     const item = this.cache.get(key);
     if (!item) {
       return null;
@@ -129,7 +129,7 @@ export class CacheManager {
     }
 
     logger.debug(`Cache hit: ${key}`);
-    return item.value;
+    return item.value as T;
   }
 
   /**

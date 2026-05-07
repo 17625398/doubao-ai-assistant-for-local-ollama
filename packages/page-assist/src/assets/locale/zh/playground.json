@@ -1,0 +1,68 @@
+{
+    "ollamaState": {
+        "searching": "正在搜索您的Ollama 🦙",
+        "running": "Ollama正在运行 🦙",
+        "notRunning": "无法连接到Ollama 🦙",
+        "connectionError": "看起来您遇到了连接错误。请参阅这<anchor>文档</anchor>进行故障排除。"
+    },
+    "formError": {
+        "noModel": "请选择一个模型",
+        "noEmbeddingModel": "请在设置>RAG页面设置一个文本嵌入模型"
+    },
+    "form": {
+        "textarea": {
+            "placeholder": "输入一条消息..."
+        },
+        "webSearch": {
+            "on": "开",
+            "off": "关"
+        }
+    },
+    "tooltip": {
+        "searchInternet": "搜索互联网",
+        "speechToText": "语音到文本",
+        "uploadImage": "上传图片",
+        "stopStreaming": "停止流式传输",
+        "knowledge": "知识",
+        "vision": "[实验性] 视觉聊天",
+        "clearContext": "清除上下文"
+    },
+    "sendWhenEnter": "按Enter发送",
+    "welcome": "你好！今天我能帮你什么？",
+    "useOCR": "从图片中提取文字（OCR）",
+    "opencli": {
+        "title": "OpenCLI 命令执行",
+        "placeholder": "输入 OpenCLI 命令...",
+        "execute": "执行",
+        "emptyCommand": "请输入命令",
+        "commandExecuted": "命令执行成功",
+        "commandFailed": "命令执行失败",
+        "daemonNotRunning": "OpenCLI 守护进程未运行",
+        "daemonStatus": "OpenCLI 守护进程: {{status}} (PID: {{pid}})",
+        "output": "输出",
+        "result": "执行结果",
+        "noOutput": "无输出",
+        "history": "命令历史",
+        "help": "使用帮助",
+        "helpText1": "OpenCLI 允许您执行各种命令来与浏览器和网页交互。",
+        "helpText2": "例如，您可以使用命令来导航到网页、获取页面内容、执行 JavaScript 等。",
+        "helpText3": "请确保 OpenCLI 守护进程正在运行。",
+        "helpExample1": "// 导航到网页",
+        "helpExample2": "await page.goto('https://example.com')",
+        "helpExample3": "// 获取页面标题",
+        "helpExample4": "await page.title()"
+    },
+    "pageAgent": {
+        "title": "Page Agent",
+        "placeholder": "例如：点击登录按钮，或在搜索框输入‘Hello’并回车",
+        "execute": "执行",
+        "executing": "执行中...",
+        "output": "输出",
+        "copy": "复制",
+        "copied": "已复制",
+        "clear": "清除",
+        "description": "在本页面直接执行自然语言指令控制 DOM，不需要截图或扩展。",
+        "history": "历史",
+        "recentCommands": "最近命令"
+    }
+}

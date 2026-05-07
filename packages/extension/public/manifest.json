@@ -3,13 +3,14 @@
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "default_locale": "zh_CN",
-  "version": "1.0.0",
+  "version": "2.8.7",
   "background": {
     "service_worker": "js/background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "__MSG_action_title__"
+    "default_title": "__MSG_action_title__",
+    "default_popup": "popup.html"
   },
   "side_panel": {
     "default_path": "side-panel.html"
@@ -55,20 +56,37 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "js": ["js/preinject.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["js/content-script.js"],
       "exclude_matches": [
         "https://www.doubao.com/chat/**",
-        "https://www.cici.com/chat/**"
+        "https://www.cici.com/chat/**",
+        "https://www.ciciai.com/chat/**",
+        "https://www.dola.com/chat/**"
       ],
       "run_at": "document_end"
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["js/preinject.js"],
-      "run_at": "document_start"
+      "js": ["js/content-extractor.js"],
+      "run_at": "document_end"
     }
   ],
   "host_permissions": ["<all_urls>"],
+  "externally_connectable": {
+    "matches": [
+      "https://*.doubao.com/*",
+      "https://*.cici.com/*",
+      "https://*.ciciai.com/*",
+      "https://*.dola.com/*",
+      "https://*.larkoffice.com/*",
+      "https://*.feishu.cn/*"
+    ]
+  },
   "web_accessible_resources": [
     {
       "matches": ["<all_urls>"],
