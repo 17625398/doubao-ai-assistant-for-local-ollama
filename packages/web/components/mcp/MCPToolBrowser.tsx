@@ -69,14 +69,14 @@ export function MCPToolBrowser({ onClose, onToolCall }: MCPToolBrowserProps) {
 
   const handleAddServer = async () => {
     if (!newServer.name?.trim()) return;
-
+ 
     try {
       const res = await fetch('/api/linkmind/mcp?action=add-server', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newServer),
       });
-
+ 
       const data = await res.json();
       if (data.success) {
         setShowAddServer(false);
@@ -84,6 +84,56 @@ export function MCPToolBrowser({ onClose, onToolCall }: MCPToolBrowserProps) {
         loadData();
       } else {
         setError(data.error || '添加服务器失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    }
+  };
+
+  const handleEnableServer = async (serverId: string, enabled: boolean) => {
+    try {
+      const res = await fetch(`/api/linkmind/mcp?action=${enabled ? 'enable' : 'disable'}&serverId=${serverId}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadData();
+      } else {
+        setError(data.error || `操作失败`);
+      }
+    } catch (err) {
+      setError('网络错误');
+    }
+  };
+
+  const handleRemoveServer = async (serverId: string) => {
+    if (!confirm('确定要删除此服务器配置吗？')) return;
+    try {
+      const res = await fetch(`/api/linkmind/mcp?action=remove&serverId=${serverId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadData();
+      } else {
+        setError(data.error || '删除失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    }
+  };
+
+  const handleValidateServers = async () => {
+    try {
+      const res = await fetch('/api/linkmind/mcp?action=validate', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('验证完成！');
+        loadData();
+      } else {
+        setError(data.error || '验证失败');
       }
     } catch (err) {
       setError('网络错误');
@@ -276,6 +326,15 @@ export function MCPToolBrowser({ onClose, onToolCall }: MCPToolBrowserProps) {
 
           {activeTab === 'servers' && (
             <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">服务器列表</span>
+                <button
+                  onClick={handleValidateServers}
+                  className="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  ✅ 验证全部
+                </button>
+              </div>
               {servers.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <p className="text-4xl mb-2">🖥️</p>
@@ -293,9 +352,27 @@ export function MCPToolBrowser({ onClose, onToolCall }: MCPToolBrowserProps) {
                         <span className="font-medium text-sm">{server.name}</span>
                         <span className="text-xs text-gray-400">{server.id}</span>
                       </div>
-                      <span className="text-xs text-gray-400">
-                        {statusLabel(server.status)} · {server.toolCount} 工具
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 mr-2">
+                          {statusLabel(server.status)} · {server.toolCount} 工具
+                        </span>
+                        <button
+                          onClick={() => handleEnableServer(server.id, server.status !== 'connected')}
+                          className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                            server.status === 'connected'
+                              ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                              : 'bg-green-500 hover:bg-green-600 text-white'
+                          }`}
+                        >
+                          {server.status === 'connected' ? '禁用' : '启用'}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveServer(server.id)}
+                          className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
                     </div>
                     {server.lastError && (
                       <p className="mt-2 text-xs text-red-500">{server.lastError}</p>

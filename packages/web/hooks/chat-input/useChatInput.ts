@@ -6,6 +6,7 @@ import { useChatInputState } from './useChatInputState';
 import { useIsDesktop } from '@/hooks/core/useDevice';
 import { useWindowContext } from '@/contexts/WindowContext';
 import { getModelCapabilities } from '@/utils/modelHelpers';
+import { TAB_CYCLE_MODELS } from '@/constants/modelConstants';
 import { useVoiceInput } from '@/hooks/chat-input/useVoiceInput';
 import { useSlashCommands, type SlashCommandState } from '@/hooks/chat-input/useSlashCommands';
 import { useLiveAPI } from '@/hooks/live-api/useLiveAPI';
@@ -884,6 +885,36 @@ export const useChatInput = () => {
           }
           return;
         }
+      }
+
+      // Tab/Shift+Tab: Cycle models and thinking levels (reference DeepSeek-TUI)
+      if (event.key === 'Tab' && !event.shiftKey && !slashCommandState.slashCommandState.isOpen) {
+        // Tab: Cycle through TAB_CYCLE_MODELS when composer is idle
+        event.preventDefault();
+        const currentModel = currentChatSettings.modelId;
+        const modelIndex = TAB_CYCLE_MODELS.indexOf(currentModel);
+        const nextIndex = (modelIndex + 1) % TAB_CYCLE_MODELS.length;
+        const nextModel = TAB_CYCLE_MODELS[nextIndex];
+        if (nextModel && onSelectModel) {
+          onSelectModel(nextModel);
+          console.log(`[Tab] Switched to model: ${nextModel}`);
+        }
+        return;
+      }
+
+      if (event.key === 'Tab' && event.shiftKey && !slashCommandState.slashCommandState.isOpen) {
+        // Shift+Tab: Cycle through thinking levels
+        event.preventDefault();
+        const levels: Array<'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH'> = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH'];
+        const currentLevel = currentChatSettings.thinkingLevel || 'HIGH';
+        const levelIndex = levels.indexOf(currentLevel);
+        const nextIndex = (levelIndex + 1) % levels.length;
+        const nextLevel = levels[nextIndex];
+        if (nextLevel && setCurrentChatSettings) {
+          setCurrentChatSettings((prev) => ({ ...prev, thinkingLevel: nextLevel }));
+          console.log(`[Shift+Tab] Switched to thinking level: ${nextLevel}`);
+        }
+        return;
       }
 
       if (inputState.isComposingRef.current || event.nativeEvent.isComposing) {

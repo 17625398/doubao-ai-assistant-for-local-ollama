@@ -12,8 +12,8 @@ export function createMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function normalizeBaseUrl(baseUrl: string): string {
-  const value = baseUrl.trim() || defaultOllamaSettings.baseUrl;
+export function normalizeBaseUrl(baseUrl: string | undefined): string {
+  const value = baseUrl?.trim() || defaultOllamaSettings.baseUrl;
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
@@ -47,7 +47,7 @@ export function saveOllamaSettings(settings: OllamaSettings): OllamaSettings {
   const next = {
     ...settings,
     baseUrl: normalizeBaseUrl(settings.baseUrl),
-    model: settings.model.trim() || defaultOllamaSettings.model,
+    model: settings.model?.trim() || defaultOllamaSettings.model,
     endpointMode: isProxyBaseUrl(settings.baseUrl) ? 'proxy' : 'upstream',
   } satisfies OllamaSettings;
   window.localStorage.setItem(OLLAMA_SETTINGS_STORAGE_KEY, JSON.stringify(next));

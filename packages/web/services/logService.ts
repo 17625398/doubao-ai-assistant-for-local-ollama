@@ -171,6 +171,11 @@ class LogServiceImpl {
   }
 
   private async flush() {
+    if (typeof window === 'undefined') {
+      this.logBuffer = [];
+      return;
+    }
+    
     if (this.logBuffer.length === 0) return;
 
     if (this.activeFlushPromise) {
@@ -184,7 +189,7 @@ class LogServiceImpl {
     }
 
     const logsToSave = [...this.logBuffer];
-    this.logBuffer = []; // Clear buffer immediately
+    this.logBuffer = [];
     let flushSucceeded = false;
 
     let flushPromise: Promise<void> | null = null;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { MessageList } from './MessageList'
-import { ChatInput } from './input/ChatInput'
+import { ChatInput } from '../ChatInput'
 import { HomeSidebar } from './home/HomeSidebar'
 import { SkillSelector } from './home/SkillSelector'
 import { OllamaSettingsDialog } from './home/OllamaSettingsDialog'
@@ -10,7 +10,7 @@ import { SplitPaneEditor } from './split-editor/SplitPaneEditor'
 import { useOllama } from './contexts/OllamaContext'
 import { OllamaProvider } from './contexts/OllamaContext'
 import { useSkillContext } from '../../contexts/SkillContext'
-import { ChatAreaProvider } from '../layout/chat-area/ChatAreaContext'
+
 import { skillInputPluginRegistry } from '@core/plugins/skill-input-plugin/registry'
 import { ollamaCapabilityService, type CapabilityId } from '../../services/doubao-home/services/ollamaCapabilityService'
 import { createMessageId } from '../../services/doubao-home/services/ollamaHomeClient'
@@ -182,12 +182,13 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         <div className="flex-1 overflow-y-auto">
           <MessageList messages={chatMessages} />
         </div>
-        <div className="shrink-0 border-t border-[var(--border-light)] p-4">
+        <div className="shrink-0 border-t border-[var(--border-light)]">
           <ChatInput
-            onSendMessage={handleSendMessage}
-            canSend={canSend}
-            input={input}
-            onInputChange={setInput}
+            onSend={handleSendMessage}
+            disabled={loading}
+            isStreaming={loading}
+            currentModel={ollamaSettings.model}
+            onOpenConfig={() => { setDraftSettings(ollamaSettings); setOpenSettings(true) }}
           />
         </div>
       </div>
@@ -306,10 +307,11 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           </div>
           <div className="mx-auto max-w-[720px] px-4">
             <ChatInput
-              onSendMessage={handleSendMessage}
-              canSend={canSend}
-              input={input}
-              onInputChange={setInput}
+              onSend={handleSendMessage}
+              disabled={loading}
+              isStreaming={loading}
+              currentModel={ollamaSettings.model}
+              onOpenConfig={() => { setDraftSettings(ollamaSettings); setOpenSettings(true) }}
             />
           </div>
         </div>
@@ -350,105 +352,9 @@ export const IntegratedChatView: React.FC<IntegratedChatViewProps> = ({ mode = '
   }
 
   return (
-    <ChatAreaProvider value={{
-      messageList: {
-        messages: [],
-        sessionTitle: '',
-        setScrollContainerRef: () => {},
-        onEditMessage: () => {},
-        onDeleteMessage: () => {},
-        onRetryMessage: () => {},
-        onUpdateMessageFile: () => {},
-        showThoughts: false,
-        themeId: 'light',
-        baseFontSize: 14,
-        expandCodeBlocksByDefault: false,
-        isMermaidRenderingEnabled: true,
-        isGraphvizRenderingEnabled: true,
-        onSuggestionClick: () => {},
-        onOrganizeInfoClick: () => {},
-        onFollowUpSuggestionClick: () => {},
-        onGenerateCanvas: () => {},
-        onContinueGeneration: () => {},
-        onQuickTTS: async () => null,
-        chatInputHeight: 100,
-        appSettings: {} as any,
-        currentModelId: 'gemma4:e4b',
-        onOpenSidePanel: () => {},
-        onQuote: () => {},
-        onInsert: () => {},
-        activeSessionId: null,
-      },
-      input: {
-        appSettings: {} as any,
-        currentChatSettings: {} as any,
-        setAppFileError: () => {},
-        activeSessionId: null,
-        commandedInput: null,
-        onMessageSent: () => {},
-        selectedFiles: [],
-        setSelectedFiles: () => {},
-        onSendMessage: () => {},
-        isLoading: false,
-        isEditing: false,
-        onStopGenerating: () => {},
-        onCancelEdit: () => {},
-        onProcessFiles: async () => {},
-        onAddFileById: async () => {},
-        onCancelUpload: () => {},
-        onTranscribeAudio: async () => null,
-        isProcessingFile: false,
-        fileError: null,
-        isImagenModel: false,
-        aspectRatio: '',
-        setAspectRatio: () => {},
-        imageSize: '',
-        setImageSize: () => {},
-        isGoogleSearchEnabled: false,
-        onToggleGoogleSearch: () => {},
-        isCodeExecutionEnabled: false,
-        onToggleCodeExecution: () => {},
-        isLocalPythonEnabled: false,
-        onToggleLocalPython: () => {},
-        isUrlContextEnabled: false,
-        onToggleUrlContext: () => {},
-        isDeepSearchEnabled: false,
-        onToggleDeepSearch: () => {},
-        onClearChat: () => {},
-        onNewChat: () => {},
-        onOpenSettings: () => {},
-        onToggleCanvasPrompt: () => {},
-        onTogglePinCurrentSession: () => {},
-        onRetryLastTurn: () => {},
-        onSelectModel: () => {},
-        availableModels: [],
-        onEditLastUserMessage: () => {},
-        onTogglePip: () => {},
-        isPipActive: false,
-        generateQuadImages: false,
-        onToggleQuadImages: () => {},
-        setCurrentChatSettings: () => {},
-        onSuggestionClick: () => {},
-        onOrganizeInfoClick: () => {},
-        showEmptyStateSuggestions: false,
-        editMode: 'update' as const,
-        onUpdateMessageContent: () => {},
-        editingMessageId: null,
-        setEditingMessageId: () => {},
-        onAddUserMessage: () => {},
-        onLiveTranscript: () => {},
-        liveClientFunctions: undefined,
-        onToggleBBox: () => {},
-        isBBoxModeActive: false,
-        onToggleGuide: () => {},
-        isGuideModeActive: false,
-        themeId: 'light',
-      },
-    }}>
-      <OllamaProvider>
-        <IntegratedChatViewInner showHomeFeatures={showHomeFeatures} />
-      </OllamaProvider>
-    </ChatAreaProvider>
+    <OllamaProvider>
+      <IntegratedChatViewInner showHomeFeatures={showHomeFeatures} />
+    </OllamaProvider>
   )
 }
 

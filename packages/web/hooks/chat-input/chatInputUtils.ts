@@ -21,7 +21,7 @@ export const buildChatInputSubmitText = ({
   modelId,
   ttsContext,
 }: BuildChatInputSubmitTextOptions) => {
-  const isTtsModel = modelId.includes('tts');
+  const isTtsModel = modelId?.includes('tts') ?? false;
   const trimmedTtsContext = ttsContext?.trim();
   const formattedQuotes =
     quotes.length > 0

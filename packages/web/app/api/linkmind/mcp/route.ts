@@ -7,19 +7,19 @@ function log(level: string, msg: string) {
   console.log(`[${new Date().toISOString()}] [LinkMind/MCP] ${level.toUpperCase()}: ${msg}`)
 }
 
-async function proxyToMCP(request: NextRequest, method: string, path: string) {
+async function proxyToMCP(request: NextRequest, method: string, path: string, customBody?: any) {
   const startTime = Date.now()
   try {
-    let body: any
+    let body: any = customBody
     const ct = request.headers.get('content-type') || ''
-    if (ct.includes('json')) body = await request.json()
+    if (!body && ct.includes('json')) body = await request.json()
 
     log('info', `${method} → ${path}`)
 
     const response = await fetch(`${LINKMIND_BASE}${MCP_PATH}${path}`, {
       method,
       headers: {
-        ...(ct.includes('json') ? { 'Content-Type': 'application/json' } : {}),
+        ...(ct.includes('json') || body ? { 'Content-Type': 'application/json' } : {}),
         Authorization: request.headers.get('authorization') || '',
         'User-Agent': 'doubao-linkmind-mcp-proxy',
       },
@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
 
   if (action === 'read-resource' && serverId) {
     return proxyToMCP(request, 'POST', `/servers/${serverId}/resources/read`)
+  }
+
+  if ((action === 'enable' || action === 'disable') && serverId) {
+    return proxyToMCP(request, 'PATCH', `/servers/${serverId}`)
+  }
+
+  if (action === 'validate') {
+    return proxyToMCP(request, 'POST', '/validate')
   }
 
   return proxyToMCP(request, 'POST', '')
