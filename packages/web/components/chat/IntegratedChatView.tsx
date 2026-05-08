@@ -7,6 +7,7 @@ import { HomeSidebar } from './home/HomeSidebar'
 import { SkillSelector } from './home/SkillSelector'
 import { OllamaSettingsDialog } from './home/OllamaSettingsDialog'
 import { SplitPaneEditor } from './split-editor/SplitPaneEditor'
+import { ModelSelector } from './home/ModelSelector'
 import { useOllama } from './contexts/OllamaContext'
 import { OllamaProvider } from './contexts/OllamaContext'
 import { useSkillContext } from '../../contexts/SkillContext'
@@ -289,6 +290,13 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     [activeSessionId]
   )
 
+  const handleSelectModel = useCallback(
+    (model: string) => {
+      updateOllamaSettings({ ...ollamaSettings, model })
+    },
+    [ollamaSettings, updateOllamaSettings]
+  )
+
   const handleSaveSettings = useCallback(
     (newSettings: any) => {
       updateOllamaSettings(newSettings)
@@ -499,7 +507,7 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
 
           <header className="flex h-12 shrink-0 items-center justify-between px-4 border-b border-[var(--border-light)]">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold text-[var(--text-primary)]">新对话</span>
+              <ModelSelector settings={ollamaSettings} onSelectModel={handleSelectModel} />
             </div>
             <div className="flex items-center gap-1">
               <button
