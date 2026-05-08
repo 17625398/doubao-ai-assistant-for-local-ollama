@@ -297,6 +297,48 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     [ollamaSettings, updateOllamaSettings]
   )
 
+  const handleEditMessage = useCallback(
+    (messageId: string, mode: 'update' | 'resend' = 'update') => {
+      const msg = messages.find(m => m.id === messageId)
+      if (!msg || msg.role !== 'user') return
+      if (mode === 'resend') {
+        const idx = messages.findIndex(m => m.id === messageId)
+        setMessages(prev => prev.slice(0, idx + 1))
+        setInput(msg.content)
+      } else {
+        setInput(msg.content)
+      }
+    },
+    [messages]
+  )
+
+  const handleDeleteMessageFromList = useCallback((messageId: string) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId))
+  }, [])
+
+  const handleRetryMessage = useCallback(
+    (messageId: string) => {
+      const idx = messages.findIndex(m => m.id === messageId)
+      if (idx < 1) return
+      const userMsg = messages[idx - 1]
+      if (userMsg.role !== 'user') return
+      setMessages(prev => prev.slice(0, idx))
+      handleSendMessage(userMsg.content)
+    },
+    [messages, handleSendMessage]
+  )
+
+  const handleEditLastUserMessage = useCallback(() => {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    if (lastUser) setInput(lastUser.content)
+  }, [messages])
+
+  const handleRetryLastTurn = useCallback(() => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
+    if (!lastAssistant) return
+    handleRetryMessage(lastAssistant.id)
+  }, [messages, handleRetryMessage])
+
   const handleSaveSettings = useCallback(
     (newSettings: any) => {
       updateOllamaSettings(newSettings)
@@ -326,9 +368,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         messages: chatMessages,
         sessionTitle: '',
         setScrollContainerRef: () => {},
-        onEditMessage: () => {},
-        onDeleteMessage: () => {},
-        onRetryMessage: () => {},
+        onEditMessage: handleEditMessage,
+        onDeleteMessage: handleDeleteMessageFromList,
+        onRetryMessage: handleRetryMessage,
         onUpdateMessageFile: () => {},
         showThoughts: false,
         themeId: 'light',
@@ -395,10 +437,10 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         },
         onToggleCanvasPrompt: () => {},
         onTogglePinCurrentSession: () => {},
-        onRetryLastTurn: () => {},
+        onRetryLastTurn: handleRetryLastTurn,
         onSelectModel: () => {},
         availableModels: [],
-        onEditLastUserMessage: () => {},
+        onEditLastUserMessage: handleEditLastUserMessage,
         onTogglePip: () => {},
         isPipActive: false,
         generateQuadImages: false,
