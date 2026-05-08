@@ -180,8 +180,12 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   const handleSendMessage = useCallback(
     async (content: string) => {
       const finalContent = content.trim()
-      if (!finalContent || loading) return
+      if (!finalContent || loading) {
+        console.log('[DEBUG] handleSendMessage early return', { finalContent, loading })
+        return
+      }
 
+      console.log('[DEBUG] handleSendMessage called', { content, messagesLen: messages.length, loading })
       setRecents(prev => saveRecentPrompt(prev, finalContent))
 
       const userMsg: DoubaoHomeMessage = {
@@ -374,18 +378,22 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   )
 
   const chatMessages: ChatMessage[] = useMemo(
-    () =>
-      messages.map(m => ({
+    () => {
+      const result = messages.map(m => ({
         id: m.id,
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content,
         timestamp: Date.now(),
         isLoading: loading && m.id === streamingIdRef.current,
-      })),
+      }))
+      console.log('[DEBUG] chatMessages computed', { messagesLen: messages.length, resultLen: result.length, loading })
+      return result
+    },
     [messages, loading]
   )
 
   const hasMessages = messages.length > 0
+  console.log('[DEBUG] IntegratedChatViewInner render', { messagesLen: messages.length, hasMessages, loading })
 
   const chatAreaValue = useMemo(
     () => ({
