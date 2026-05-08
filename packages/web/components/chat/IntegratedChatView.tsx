@@ -131,6 +131,19 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     }, 500)
   }, [messages, activeSessionId])
 
+  const handleNewSession = useCallback(() => {
+    abortControllerRef.current?.abort()
+    streamingStore.clear(streamingIdRef.current || '')
+    setMessages([])
+    const fresh = createConversation()
+    setConversations(prev => {
+      const next = [fresh, ...prev]
+      saveConversations(next)
+      return next
+    })
+    setActiveSessionId(fresh.id)
+  }, [])
+
   const usePrompt = useCallback((prompt: string) => {
     if (prompt === '新建对话') {
       handleNewSession()
@@ -241,19 +254,6 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     setMessages([])
     resetToChat()
   }, [resetToChat])
-
-  const handleNewSession = useCallback(() => {
-    abortControllerRef.current?.abort()
-    streamingStore.clear(streamingIdRef.current || '')
-    setMessages([])
-    const fresh = createConversation()
-    setConversations(prev => {
-      const next = [fresh, ...prev]
-      saveConversations(next)
-      return next
-    })
-    setActiveSessionId(fresh.id)
-  }, [])
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
