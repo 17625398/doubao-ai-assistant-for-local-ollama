@@ -27,6 +27,7 @@ import type { DoubaoHomeMessage, LocalCapabilityStatus } from '../../services/do
 import type { HomeNavKey } from '../../services/doubao-home/data/homeContent'
 import { defaultRecentItems, suggestions } from '../../services/doubao-home/data/homeContent'
 import { Columns } from 'lucide-react'
+import { streamingStore } from '../../services/streamingStore'
 import type { ChatMessage } from '../types'
 
 const SKILL_TO_CAPABILITY_MAP: Record<string, CapabilityId> = {
@@ -65,6 +66,8 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   })
   const [isSplitEditorOpen, setIsSplitEditorOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const streamingIdRef = useRef<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const {
     settings: ollamaSettings,
@@ -112,65 +115,93 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         role: 'user' as const,
         content: finalContent,
       }
+      const assistantId = createMessageId()
+      const assistantMsg: DoubaoHomeMessage = {
+        id: assistantId,
+        role: 'assistant' as const,
+        content: '',
+      }
 
-      const next = [...messages, userMsg]
+      const next = [...messages, userMsg, assistantMsg]
       setMessages(next)
       setInput('')
       setLoading(true)
+      streamingIdRef.current = assistantId
+
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
 
       try {
         const capabilityId: CapabilityId | undefined = SKILL_TO_CAPABILITY_MAP[activePluginId]
 
         if (capabilityId) {
-          const result = await ollamaCapabilityService.execute({
-            capability: capabilityId,
-            input: finalContent,
-            contextMessages: next.slice(0, -1),
-          })
-
-          setStatusText(
-            `${ollamaCapabilityService.getCapabilityConfig(capabilityId)?.label || capabilityId} · ${result.model} · ${(result.durationMs / 1000).toFixed(1)}s`
-          )
-
-          setMessages([
-            ...next,
+          const stream = ollamaCapabilityService.executeStream(
             {
-              id: createMessageId(),
-              role: 'assistant' as const,
-              content: result.content,
+              capability: capabilityId,
+              input: finalContent,
+              contextMessages: next.slice(0, -2),
             },
-          ])
-        } else {
-          const { sendOllamaChat } =
-            await import('../../services/doubao-home/services/ollamaHomeClient')
-          const reply = await sendOllamaChat(
-            ollamaSettings,
-            next.map(m => ({ id: m.id, role: m.role, content: m.content }))
+            abortController.signal
           )
 
-          setMessages([
-            ...next,
-            { id: createMessageId(), role: 'assistant' as const, content: reply },
-          ])
+          for await (const chunk of stream) {
+            if (abortController.signal.aborted) break
+            streamingStore.updateContent(assistantId, chunk)
+          }
+
+          const finalContent_ = streamingStore.getContent(assistantId)
+          streamingStore.clear(assistantId)
+          setMessages(prev =>
+            prev.map(m => (m.id === assistantId ? { ...m, content: finalContent_ } : m))
+          )
+        } else {
+          const { sendOllamaChatStream } =
+            await import('../../services/doubao-home/services/ollamaHomeClient')
+          const stream = sendOllamaChatStream(
+            ollamaSettings,
+            next.slice(0, -1).map(m => ({ id: m.id, role: m.role, content: m.content })),
+            abortController.signal
+          )
+
+          for await (const chunk of stream) {
+            if (abortController.signal.aborted) break
+            streamingStore.updateContent(assistantId, chunk)
+          }
+
+          const finalContent_ = streamingStore.getContent(assistantId)
+          streamingStore.clear(assistantId)
+          setMessages(prev =>
+            prev.map(m => (m.id === assistantId ? { ...m, content: finalContent_ } : m))
+          )
         }
       } catch (error) {
+        streamingStore.clear(assistantId)
+        const currentStreamed = streamingStore.getContent(assistantId)
         const errMsg = error instanceof Error ? error.message : String(error)
-        setMessages([
-          ...next,
-          {
-            id: createMessageId(),
-            role: 'assistant' as const,
-            content: `请求失败\n\n${errMsg}\n\n请检查：\n1. Ollama 服务是否启动\n2. 端点设置是否正确：${ollamaSettings.baseUrl}\n3. 模型 ${ollamaSettings.model} 是否已下载`,
-          },
-        ])
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: currentStreamed
+                    ? `${currentStreamed}\n\n[错误] ${errMsg}`
+                    : `请求失败\n\n${errMsg}\n\n请检查：\n1. Ollama 服务是否启动\n2. 端点设置是否正确：${ollamaSettings.baseUrl}\n3. 模型 ${ollamaSettings.model} 是否已下载`,
+                }
+              : m
+          )
+        )
       } finally {
         setLoading(false)
+        streamingIdRef.current = null
+        abortControllerRef.current = null
       }
     },
     [messages, loading, ollamaSettings, activePluginId]
   )
 
   const handleClearChat = useCallback(() => {
+    abortControllerRef.current?.abort()
+    streamingStore.clear(streamingIdRef.current || '')
     setMessages([])
     resetToChat()
   }, [resetToChat])
@@ -191,15 +222,12 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content,
         timestamp: Date.now(),
-        isLoading: false,
+        isLoading: loading && m.id === streamingIdRef.current,
       })),
-    [messages]
+    [messages, loading]
   )
 
   const hasMessages = messages.length > 0
-
-  console.log('IntegratedChatViewInner - messages:', messages)
-  console.log('IntegratedChatViewInner - chatMessages:', chatMessages)
 
   const chatAreaValue = useMemo(
     () => ({
@@ -243,7 +271,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         onSendMessage: handleSendMessage,
         isLoading: loading,
         isEditing: false,
-        onStopGenerating: () => {},
+        onStopGenerating: () => {
+          abortControllerRef.current?.abort()
+        },
         onCancelEdit: () => {},
         onProcessFiles: async () => {},
         onAddFileById: async () => {},

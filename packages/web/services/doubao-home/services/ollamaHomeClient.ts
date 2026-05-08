@@ -90,6 +90,58 @@ export async function fetchOllamaModels(settings: OllamaSettings): Promise<Ollam
   return Array.isArray(data?.models) ? data.models : [];
 }
 
+export async function* sendOllamaChatStream(
+  settings: OllamaSettings,
+  messages: DoubaoHomeMessage[],
+  signal?: AbortSignal
+): AsyncGenerator<string> {
+  const response = await fetch(buildProxyUrl('/api/chat'), {
+    method: 'POST',
+    headers: buildOllamaHeaders(settings),
+    body: JSON.stringify({
+      model: settings.model,
+      stream: true,
+      messages: [
+        { role: 'system', content: '你是豆包风格的中文 AI 助手，回答清晰、自然、可执行。' },
+        ...messages.map((message) => ({ role: message.role, content: message.content })),
+      ],
+      options: { temperature: 0.7, top_p: 0.9 },
+    }),
+    signal,
+  })
+  if (!response.ok) throw new Error(await response.text().catch(() => `HTTP ${response.status}`))
+
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error('No response body')
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          const chunk = JSON.parse(line)
+          if (chunk?.message?.content) {
+            yield chunk.message.content
+          } else if (chunk?.response) {
+            yield chunk.response
+          }
+        } catch {
+          // skip parse errors
+        }
+      }
+    }
+  }
+}
+
 export async function sendOllamaChat(settings: OllamaSettings, messages: DoubaoHomeMessage[]): Promise<string> {
   const response = await fetch(buildProxyUrl('/api/chat'), {
     method: 'POST',
