@@ -548,6 +548,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           onNewSession={handleNewSession}
           onSelectSession={handleSelectSession}
           onDeleteSession={handleDeleteSession}
+          onImportFile={(_file: File) => {}}
+          onOpenDocumentUpload={() => {}}
+          onOpenCodeUpload={() => {}}
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col bg-[var(--bg-primary)]">
