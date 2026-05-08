@@ -79,6 +79,14 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const autoSaveRef = useRef<number | null>(null)
+  const loadingTimeoutRef = useRef<number | null>(null)
+
+  const clearLoadingTimeout = useCallback(() => {
+    if (loadingTimeoutRef.current != null) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
+  }, [])
 
   const {
     settings: ollamaSettings,
@@ -116,6 +124,23 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    if (loading) {
+      clearLoadingTimeout()
+      loadingTimeoutRef.current = window.setTimeout(() => {
+        setLoading(false)
+        streamingIdRef.current = null
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+          abortControllerRef.current = null
+        }
+      }, 120_000)
+    } else {
+      clearLoadingTimeout()
+    }
+    return clearLoadingTimeout
+  }, [loading, clearLoadingTimeout])
 
   useEffect(() => {
     if (autoSaveRef.current != null) clearTimeout(autoSaveRef.current)
