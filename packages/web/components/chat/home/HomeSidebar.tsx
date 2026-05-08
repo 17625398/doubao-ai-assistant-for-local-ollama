@@ -5,6 +5,8 @@ import { navItems } from '../../../services/doubao-home/data/homeContent'
 import { useSkillContext } from '../../../contexts/SkillContext'
 import { skillInputPluginRegistry } from '@core/plugins/skill-input-plugin/registry'
 import type { SkillCategory, SkillInputPlugin } from '@core/plugins/skill-input-plugin/types'
+import type { Conversation } from '../../../services/doubao-home/services/conversationService'
+
 const statusText: Record<string, string> = {
   unknown: '未检测',
   checking: '检测中',
@@ -15,6 +17,8 @@ const statusText: Record<string, string> = {
 interface HomeSidebarProps {
   active: HomeNavKey
   recents: string[]
+  conversations: Conversation[]
+  activeSessionId: string | null
   localStatus: LocalCapabilityStatus
   hasMessages: boolean
   onSelectNav: (label: HomeNavKey, prompt: string) => void
@@ -25,13 +29,18 @@ interface HomeSidebarProps {
   onClearSession: () => void
   onDiagnostics: () => void
   onOpenSettings: () => void
-  onOpenDocumentUpload: () => void // 触发文档上传
-  onOpenCodeUpload: () => void // 触发代码上传
+  onOpenDocumentUpload: () => void
+  onOpenCodeUpload: () => void
+  onNewSession: () => void
+  onSelectSession: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
 }
 
 export const HomeSidebar: React.FC<HomeSidebarProps> = ({
   active,
   recents,
+  conversations,
+  activeSessionId,
   localStatus,
   hasMessages,
   onSelectNav,
@@ -44,6 +53,9 @@ export const HomeSidebar: React.FC<HomeSidebarProps> = ({
   onOpenSettings,
   onOpenDocumentUpload,
   onOpenCodeUpload,
+  onNewSession,
+  onSelectSession,
+  onDeleteSession,
 }) => {
   const [showLocalPanel, setShowLocalPanel] = useState(false)
   const [showSkillPanel, setShowSkillPanel] = useState(false)
@@ -111,7 +123,7 @@ export const HomeSidebar: React.FC<HomeSidebarProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => onUsePrompt('新建对话')}
+          onClick={onNewSession}
           className="group/new relative rounded-xl p-2 text-[var(--text-tertiary)] transition-all duration-300 hover:bg-[var(--sidebar-item-active)] hover:text-[var(--brand-orange)] active:scale-95"
           title="新建对话"
         >
@@ -492,76 +504,60 @@ export const HomeSidebar: React.FC<HomeSidebarProps> = ({
         </div>
       </nav>
 
-      {/* 历史对话区域 */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--border-light)]">
         <div className="flex items-center justify-between px-4 py-2">
           <span className="text-[12px] font-medium text-[var(--text-tertiary)]">📝 历史对话</span>
-          {recents.length > 0 && (
-            <span className="text-[10px] text-gray-400">{recents.length} 条</span>
+          {conversations.length > 0 && (
+            <span className="text-[10px] text-gray-400">{conversations.length}</span>
           )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-          {recents.length === 0 ? (
+          {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center shadow-sm mb-3">
-                <svg
-                  className="w-7 h-7 text-gray-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
+                <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
               <p className="text-[12px] text-gray-400">开始一段新对话吧</p>
             </div>
           ) : (
             <div className="space-y-0.5">
-              {recents.slice(0, 12).map((item, index) => (
-                <div
-                  key={index}
-                  className="group relative flex items-center rounded-lg py-1.5 transition-all duration-200 hover:bg-[var(--sidebar-item-hover)] hover:pl-1"
-                >
-                  <button
-                    type="button"
-                    onClick={() => onUsePrompt(`继续讨论：${item}`)}
-                    className="flex flex-1 items-center gap-2.5 px-2 text-left"
+              {conversations.map(conv => {
+                const isActive = conv.id === activeSessionId
+                return (
+                  <div
+                    key={conv.id}
+                    className={`group relative flex items-center rounded-lg py-1.5 transition-all duration-200 hover:bg-[var(--sidebar-item-hover)] hover:pl-1 ${isActive ? 'bg-[var(--sidebar-item-active)]' : ''}`}
                   >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300 group-hover:bg-orange-400 transition-colors" />
-                    <span
-                      className="truncate text-[12px] leading-snug text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
-                      title={item}
+                    <button
+                      type="button"
+                      onClick={() => onSelectSession(conv.id)}
+                      className="flex flex-1 items-center gap-2.5 px-2 text-left"
                     >
-                      {item}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      if (confirm('删除该记录？')) onUsePrompt(`__DELETE_HISTORY__:${index}`)
-                    }}
-                    className="mr-1 p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all duration-200"
-                    title="删除"
-                  >
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isActive ? 'bg-[var(--brand-orange)]' : 'bg-gray-300 group-hover:bg-orange-400'}`} />
+                      <span className="truncate text-[12px] leading-snug text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" title={conv.title}>
+                        {conv.title}
+                      </span>
+                      <span className="shrink-0 text-[9px] text-gray-400">{conv.messages.length}条</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation()
+                        onDeleteSession(conv.id)
+                      }}
+                      className="mr-1 p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all duration-200"
+                      title="删除"
                     >
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

@@ -29,6 +29,13 @@ import { defaultRecentItems, suggestions } from '../../services/doubao-home/data
 import { Columns } from 'lucide-react'
 import { streamingStore } from '../../services/streamingStore'
 import type { ChatMessage } from '../types'
+import {
+  loadConversations,
+  saveConversations,
+  createConversation,
+  updateConversation,
+  type Conversation,
+} from '../../services/doubao-home/services/conversationService'
 
 const SKILL_TO_CAPABILITY_MAP: Record<string, CapabilityId> = {
   write: 'writing',
@@ -68,6 +75,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const streamingIdRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const autoSaveRef = useRef<number | null>(null)
 
   const {
     settings: ollamaSettings,
@@ -88,20 +98,45 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
       .catch(() => {
         setLocalStatus(s => ({ ...s, ollama: 'offline' }))
       })
+
+    const loaded = loadConversations()
+    setConversations(loaded)
+    if (loaded.length > 0) {
+      setActiveSessionId(loaded[0].id)
+      setMessages(loaded[0].messages)
+    } else {
+      const fresh = createConversation()
+      setConversations([fresh])
+      setActiveSessionId(fresh.id)
+      saveConversations([fresh])
+    }
   }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  useEffect(() => {
+    if (autoSaveRef.current != null) clearTimeout(autoSaveRef.current)
+    if (!activeSessionId || streamingIdRef.current) return
+    autoSaveRef.current = window.setTimeout(() => {
+      setConversations(prev => {
+        const updated = prev.map(c =>
+          c.id === activeSessionId ? updateConversation(c, messages) : c
+        )
+        saveConversations(updated)
+        return updated
+      })
+    }, 500)
+  }, [messages, activeSessionId])
+
   const usePrompt = useCallback((prompt: string) => {
     if (prompt === '新建对话') {
-      setMessages([])
-      setInput('')
+      handleNewSession()
       return
     }
     setInput(prompt)
-  }, [])
+  }, [handleNewSession])
 
   const handleSendMessage = useCallback(
     async (content: string) => {
@@ -205,6 +240,54 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     setMessages([])
     resetToChat()
   }, [resetToChat])
+
+  const handleNewSession = useCallback(() => {
+    abortControllerRef.current?.abort()
+    streamingStore.clear(streamingIdRef.current || '')
+    setMessages([])
+    const fresh = createConversation()
+    setConversations(prev => {
+      const next = [fresh, ...prev]
+      saveConversations(next)
+      return next
+    })
+    setActiveSessionId(fresh.id)
+  }, [])
+
+  const handleSelectSession = useCallback(
+    (sessionId: string) => {
+      if (sessionId === activeSessionId) return
+      abortControllerRef.current?.abort()
+      streamingStore.clear(streamingIdRef.current || '')
+      const conv = conversations.find(c => c.id === sessionId)
+      if (conv) {
+        setActiveSessionId(sessionId)
+        setMessages(conv.messages)
+      }
+    },
+    [activeSessionId, conversations]
+  )
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string) => {
+      setConversations(prev => {
+        const next = prev.filter(c => c.id !== sessionId)
+        saveConversations(next)
+        return next
+      })
+      if (activeSessionId === sessionId) {
+        setConversations(prev => {
+          const next = prev.length > 0 ? prev : [createConversation()]
+          if (prev.length === 0) saveConversations(next)
+          const target = next[0]
+          setActiveSessionId(target.id)
+          setMessages(target.messages)
+          return next
+        })
+      }
+    },
+    [activeSessionId]
+  )
 
   const handleSaveSettings = useCallback(
     (newSettings: any) => {
@@ -363,6 +446,8 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         <HomeSidebar
           active={active}
           recents={recents}
+          conversations={conversations}
+          activeSessionId={activeSessionId}
           localStatus={localStatus}
           hasMessages={hasMessages}
           onSelectNav={(label, prompt) => {
@@ -385,6 +470,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
             setDraftSettings(ollamaSettings)
             setOpenSettings(true)
           }}
+          onNewSession={handleNewSession}
+          onSelectSession={handleSelectSession}
+          onDeleteSession={handleDeleteSession}
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col bg-[var(--bg-primary)]">
