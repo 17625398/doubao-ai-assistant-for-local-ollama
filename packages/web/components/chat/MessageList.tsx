@@ -56,7 +56,6 @@ const MessageListComponent: React.FC = () => {
     activeSessionId,
   } = useChatAreaMessageList();
   const visibleMessages = useMemo(() => getVisibleChatMessages(messages), [messages]);
-  console.log('[DEBUG] MessageList render', { msgLen: messages?.length, visibleLen: visibleMessages?.length });
   // UI Logic (Modals, Previews, Configuration)
   const {
       previewFile,
@@ -106,39 +105,51 @@ const MessageListComponent: React.FC = () => {
               themeId={themeId}
           />
         ) : (
-          <div className="overflow-y-auto min-h-0 flex-1 w-full">
-            {visibleMessages.map((msg, index) => (
-              <div key={msg.id} className="px-1.5 sm:px-2 md:px-3 max-w-7xl mx-auto w-full">
-                <Message
-                  message={msg}
-                  sessionTitle={sessionTitle}
-                  prevMessage={index > 0 ? visibleMessages[index - 1] : undefined}
-                  messageIndex={index}
-                  onEditMessage={onEditMessage}
-                  onDeleteMessage={onDeleteMessage}
-                  onRetryMessage={onRetryMessage}
-                  onImageClick={handleFileClick}
-                  onOpenHtmlPreview={handleOpenHtmlPreview}
-                  showThoughts={showThoughts}
-                  themeId={themeId}
-                  baseFontSize={baseFontSize}
-                  expandCodeBlocksByDefault={expandCodeBlocksByDefault}
-                  isMermaidRenderingEnabled={isMermaidRenderingEnabled}
-                  isGraphvizRenderingEnabled={isGraphvizRenderingEnabled}
-                  onGenerateCanvas={onGenerateCanvas}
-                  onContinueGeneration={onContinueGeneration}
-                  onSuggestionClick={onFollowUpSuggestionClick}
-                  appSettings={appSettings}
-                  onOpenSidePanel={onOpenSidePanel}
-                  onConfigureFile={msg.role === 'user' ? handleConfigureFile : undefined}
-                  isGemini3={isGemini3}
-                  onTTS={() => onQuickTTS(msg.content)}
-                  onOpenSplitEditor={onOpenSplitEditor}
-                />
-              </div>
-            ))}
-            <MessageListFooter messages={visibleMessages} chatInputHeight={chatInputHeight} />
-          </div>
+          <Virtuoso
+            ref={virtuosoRef}
+            data={visibleMessages}
+            scrollerRef={handleScrollerRef}
+            atBottomStateChange={setAtBottom}
+            followOutput={false}
+            rangeChanged={onRangeChanged}
+            increaseViewportBy={800}
+            className="custom-scrollbar"
+            onScroll={handleScroll}
+            style={{ flex: '1 1 0%', height: '100%' }}
+            components={{
+                Footer: () => <MessageListFooter messages={visibleMessages} chatInputHeight={chatInputHeight} />
+            }}
+            itemContent={(index, msg) => (
+                <div className="px-1.5 sm:px-2 md:px-3 max-w-7xl mx-auto w-full">
+                    <Message
+                        message={msg}
+                        sessionTitle={sessionTitle}
+                        prevMessage={index > 0 ? visibleMessages[index - 1] : undefined}
+                        messageIndex={index}
+                        onEditMessage={onEditMessage}
+                        onDeleteMessage={onDeleteMessage}
+                        onRetryMessage={onRetryMessage}
+                        onImageClick={handleFileClick}
+                        onOpenHtmlPreview={handleOpenHtmlPreview}
+                        showThoughts={showThoughts}
+                        themeId={themeId}
+                        baseFontSize={baseFontSize}
+                        expandCodeBlocksByDefault={expandCodeBlocksByDefault}
+                        isMermaidRenderingEnabled={isMermaidRenderingEnabled}
+                        isGraphvizRenderingEnabled={isGraphvizRenderingEnabled}
+                        onGenerateCanvas={onGenerateCanvas}
+                        onContinueGeneration={onContinueGeneration}
+                        onSuggestionClick={onFollowUpSuggestionClick}
+                        appSettings={appSettings}
+                        onOpenSidePanel={onOpenSidePanel}
+                        onConfigureFile={msg.role === 'user' ? handleConfigureFile : undefined}
+                        isGemini3={isGemini3}
+                        onTTS={() => onQuickTTS(msg.content)}
+                        onOpenSplitEditor={onOpenSplitEditor}
+                    />
+                </div>
+            )}
+          />
         )}
         
         {/* Floating Toolbars & Navigation */}
