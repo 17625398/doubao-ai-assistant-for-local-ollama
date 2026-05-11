@@ -126,6 +126,14 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
   }, [messages, loading])
 
   useEffect(() => {
+    const handleOpenHiCAD = () => {
+      window.location.href = '/hicad'
+    }
+    window.addEventListener('open-hicad', handleOpenHiCAD)
+    return () => window.removeEventListener('open-hicad', handleOpenHiCAD)
+  }, [])
+
+  useEffect(() => {
     if (loading) {
       clearLoadingTimeout()
       loadingTimeoutRef.current = window.setTimeout(() => {
@@ -181,11 +189,9 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     async (content: string) => {
       const finalContent = content.trim()
       if (!finalContent || loading) {
-        console.log('[DEBUG] handleSendMessage early return', { finalContent, loading })
         return
       }
 
-      console.log('[DEBUG] handleSendMessage called', { content, messagesLen: messages.length, loading })
       setRecents(prev => saveRecentPrompt(prev, finalContent))
 
       const userMsg: DoubaoHomeMessage = {
@@ -225,13 +231,13 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           for await (const chunk of stream) {
             if (abortController.signal.aborted) break
             streamingStore.updateContent(assistantId, chunk)
+            const currentContent = streamingStore.getContent(assistantId)
+            setMessages(prev =>
+              prev.map(m => (m.id === assistantId ? { ...m, content: currentContent } : m))
+            )
           }
 
-          const finalContent_ = streamingStore.getContent(assistantId)
           streamingStore.clear(assistantId)
-          setMessages(prev =>
-            prev.map(m => (m.id === assistantId ? { ...m, content: finalContent_ } : m))
-          )
         } else {
           const { sendOllamaChatStream } =
             await import('../../services/doubao-home/services/ollamaHomeClient')
@@ -244,13 +250,13 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           for await (const chunk of stream) {
             if (abortController.signal.aborted) break
             streamingStore.updateContent(assistantId, chunk)
+            const currentContent = streamingStore.getContent(assistantId)
+            setMessages(prev =>
+              prev.map(m => (m.id === assistantId ? { ...m, content: currentContent } : m))
+            )
           }
 
-          const finalContent_ = streamingStore.getContent(assistantId)
           streamingStore.clear(assistantId)
-          setMessages(prev =>
-            prev.map(m => (m.id === assistantId ? { ...m, content: finalContent_ } : m))
-          )
         }
       } catch (error) {
         streamingStore.clear(assistantId)
@@ -381,19 +387,18 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     () => {
       const result = messages.map(m => ({
         id: m.id,
-        role: m.role === 'user' ? 'user' : 'assistant',
+        role: m.role === 'user' ? 'user' : 'model',
         content: m.content,
         timestamp: Date.now(),
         isLoading: loading && m.id === streamingIdRef.current,
       }))
-      console.log('[DEBUG] chatMessages computed', { messagesLen: messages.length, resultLen: result.length, loading })
       return result
     },
     [messages, loading]
   )
 
   const hasMessages = messages.length > 0
-  console.log('[DEBUG] IntegratedChatViewInner render', { messagesLen: messages.length, hasMessages, loading })
+  console.log('[DEBUG] IntegratedChatViewInner', { messagesLen: messages.length, hasMessages, showHomeFeatures })
 
   const chatAreaValue = useMemo(
     () => ({
@@ -423,6 +428,7 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
         onOpenSidePanel: () => {},
         onQuote: () => {},
         onInsert: () => {},
+        onOpenSplitEditor: () => setIsSplitEditorOpen(true),
         activeSessionId: null,
       },
       input: {
@@ -503,7 +509,7 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
     return (
       <ChatAreaProvider value={chatAreaValue}>
         <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto flex flex-col">
             <MessageList messages={chatMessages} />
           </div>
           <div className="shrink-0 border-t border-[var(--border-light)]">
@@ -561,7 +567,7 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           onOpenCodeUpload={() => {}}
         />
 
-        <section className="relative flex min-w-0 flex-1 flex-col bg-[var(--bg-primary)]">
+        <section className="relative flex min-w-0 flex-1 flex-col h-full bg-[var(--bg-primary)]">
           {isSpecializedMode && (
             <div className="flex items-center gap-3 px-4 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-light)]">
               <div className="w-8 h-8 shrink-0 rounded-xl bg-gradient-to-br from-[var(--brand-orange)]/15 to-[var(--brand-orange)]/5 flex items-center justify-center">
@@ -590,10 +596,10 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => setIsSplitEditorOpen(true)}
+                onClick={() => setIsSplitEditorOpen(v => !v)}
                 disabled={!hasMessages}
-                className={`rounded-xl p-2 transition ${hasMessages ? 'text-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/10' : 'text-[var(--text-disabled)] cursor-not-allowed'}`}
-                title="分栏编辑导出"
+                className={`rounded-xl p-2 transition ${isSplitEditorOpen ? 'bg-[var(--brand-orange)]/15 text-[var(--brand-orange)]' : hasMessages ? 'text-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/10' : 'text-[var(--text-disabled)] cursor-not-allowed'}`}
+                title={isSplitEditorOpen ? '关闭分栏编辑' : '分栏编辑导出'}
               >
                 <Columns className="h-5 w-5" />
               </button>
@@ -620,10 +626,10 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           </header>
 
           <div
-            className={`min-h-0 flex-1 ${hasMessages ? 'overflow-y-auto pb-[120px]' : 'flex flex-col items-center overflow-y-auto'}`}
+            className={`min-h-0 flex-1 ${hasMessages ? (isSplitEditorOpen ? 'flex flex-row' : 'flex flex-col') : 'flex flex-col items-center overflow-y-auto'}`}
           >
             {hasMessages ? (
-              <div className="mx-auto w-full max-w-[720px] py-6 px-8">
+              <div className={`flex-1 min-h-0 ${isSplitEditorOpen ? '' : 'mx-auto max-w-[720px]'} py-6 px-8 flex flex-col`}>
                 <MessageList messages={chatMessages} />
               </div>
             ) : (
@@ -660,6 +666,21 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {isSplitEditorOpen && hasMessages && (
+              <div className="flex-1 min-h-0 border-l border-[var(--border-light)] overflow-hidden flex flex-col">
+                <SplitPaneEditor
+                  inline
+                  messages={messages.map(m => ({
+                    id: m.id,
+                    role: m.role === 'user' ? 'user' : m.role === 'assistant' ? 'model' : 'error',
+                    content: m.content,
+                    timestamp: Date.now(),
+                  }))}
+                  onClose={() => setIsSplitEditorOpen(false)}
+                />
               </div>
             )}
           </div>
@@ -708,17 +729,6 @@ function IntegratedChatViewInner({ showHomeFeatures = true }: IntegratedChatView
           onSave={handleSaveSettings}
         />
 
-        {isSplitEditorOpen && (
-          <SplitPaneEditor
-            messages={messages.map(m => ({
-              id: m.id,
-              role: m.role === 'user' ? 'user' : m.role === 'assistant' ? 'model' : 'error',
-              content: m.content,
-              timestamp: Date.now(),
-            }))}
-            onClose={() => setIsSplitEditorOpen(false)}
-          />
-        )}
       </main>
     </ChatAreaProvider>
   )

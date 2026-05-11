@@ -1,10 +1,8 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
-import { I18nProvider } from '@/contexts/I18nContext';
-import { SkillProvider } from '@/contexts/SkillContext';
-import { ChatProvider, UIProvider } from '@/contexts';
-import { PdfJsProvider } from '@/components/PdfJsProvider';
+import type { Metadata } from 'next'
+import './globals.css'
+import dynamic from 'next/dynamic'
+
+const ClientProviders = dynamic(() => import('@/components/shared/client-only/ClientProviders'))
 
 export const metadata: Metadata = {
   title: '豆包 - 你的AI助手',
@@ -17,34 +15,17 @@ export const metadata: Metadata = {
     url: 'www.doubao.com',
     images: ['https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/logo_new.png'],
   },
-};
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <head>
         <link rel="icon" href="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <ErrorBoundary>
-          <I18nProvider>
-            <SkillProvider>
-              <PdfJsProvider>
-                <UIProvider>
-                  <ChatProvider>
-                    {children}
-                  </ChatProvider>
-                </UIProvider>
-              </PdfJsProvider>
-            </SkillProvider>
-          </I18nProvider>
-        </ErrorBoundary>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
-  );
+  )
 }
